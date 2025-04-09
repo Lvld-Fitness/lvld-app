@@ -69,7 +69,7 @@ useEffect(() => {
       )}
 
       {/* Bottom Navigation Tabs */}
-      <nav className="fixed bottom-0 left-0 w-full bg-gray-900 border-t border-gray-700 flex justify-around py-5 z-50">
+      <nav className="fixed bottom-0 left-0 w-full bg-gray-900 border-t border-gray-700 flex justify-around py-5 z-50 pt-6">
         <button
           onClick={() => setActiveTab('workout')}
           className={`text-sm font-semibold ${

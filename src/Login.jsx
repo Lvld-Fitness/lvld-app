@@ -63,6 +63,13 @@ export default function Login() {
           Login
         </button>
       </form>
+
+      <button
+        onClick={() => navigate('/signup')}
+        className="mt-4 text-sm text-blue-400 hover:underline"
+      >
+        Create Account
+      </button>
     </div>
   );
 }

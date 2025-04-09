@@ -8,6 +8,8 @@ import Dashboard from './Dashboard';
 import { RestTimerProvider } from './RestTimerContext';
 import { GlobalRestTimerProvider } from './GlobalRestTimerContext';
 import PremadeWorkoutPage from './PremadeWorkoutPage';
+import Signup from './Signup';
+
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -55,6 +57,9 @@ export default function App() {
             )
           }
         />
+
+        <Route path="/signup" element={<Signup />} />
+
       </Routes>
     </BrowserRouter>
   );
