@@ -287,7 +287,7 @@ export default function WorkoutTab() {
   
 
   return (
-    <div className="text-white bg-black min-h-screen p-4 pb-24">
+    <div className="text-white bg-black min-h-[100dvh] p-4 pb-24">
       {floatingRest && (
         <RestFloatingTimer
           duration={floatingRest.duration}
@@ -342,30 +342,30 @@ export default function WorkoutTab() {
                     <div className="flex justify-between items-start">
                       <div>
                         <p className="text-lg font-semibold">{workout.name || `Workout ${index + 1}`}</p>
-                        <p className="text-sm text-gray-400 mt-1">
+                        <p className="text-base text-gray-400 mt-1">
                           {new Date(workout.timestamp).toLocaleDateString()} • {new Date(workout.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
-                        <p className="text-sm text-gray-400">
+                        <p className="text-base text-gray-400">
                           Duration: {workout.duration || 'N/A'} • Total Weight: {workout.totalWeight || 0} lbs
                         </p>
                       </div>
                       <div className="absolute top-4 right-4 flex gap-2">
                         <button
                           onClick={() => navigator.clipboard.writeText(JSON.stringify(workout))}
-                          className="text-blue-400 hover:text-blue-500 text-sm"
+                          className="text-blue-400 hover:text-blue-500 text-base"
                         >
                           Share
                         </button>
                         <button
                           onClick={() => handleDeleteWorkout(index)}
-                          className="text-red-400 hover:text-red-500 text-sm"
+                          className="text-red-400 hover:text-red-500 text-base"
                         >
                           Delete
                         </button>
                       </div>
                     </div>
 
-                    <div className="mt-2 text-sm">
+                    <div className="mt-2 text-base">
                       {workout.exercises.map((ex, idx) => (
                         <div key={idx} className="mb-2">
                           <p className="font-semibold">{ex.name}</p>
@@ -387,7 +387,7 @@ export default function WorkoutTab() {
       ) : (
         
         <>
-          <p className="text-sm text-gray-400 mb-2">
+          <p className="text-base text-gray-400 mb-2">
             Workout Time: <span className="text-white">{formatTime(elapsedTime)}</span>
           </p>
 
@@ -395,7 +395,7 @@ export default function WorkoutTab() {
             type="text"
             placeholder="Workout Name (optional)"
             value={workoutName}
-            onChange={(e) => setWorkoutName(e.target.value)}
+            onChange={(e) = style={ fontSize: "16px" }> setWorkoutName(e.target.value)}
             className="w-full p-2 mb-4 rounded bg-gray-700 text-white"
           />
 
@@ -404,7 +404,7 @@ export default function WorkoutTab() {
               <div className="flex justify-between items-center mb-2">
                 <h3 className="font-bold text-lg">{exercise.name}</h3>
                 {exercise.note && (
-                  <p className="text-sm text-yellow-300 mt-1 italic">{exercise.note}</p>
+                  <p className="text-base text-yellow-300 mt-1 italic">{exercise.note}</p>
                 )}
 
                 <button
@@ -419,13 +419,13 @@ export default function WorkoutTab() {
                   <div className="absolute right-4 top-10 bg-gray-900 border border-gray-700 p-2 rounded shadow z-10">
                     <button
                       onClick={() => { setShowNoteModal(exerciseIdx); setOptionsOpen(null); }}
-                      className="block w-full text-left text-sm text-yellow-300 hover:text-yellow-400"
+                      className="block w-full text-left text-base text-yellow-300 hover:text-yellow-400"
                     >
                       📝 Add Notes
                     </button>
                     <button
                       onClick={() => { setShowRestTimer(exerciseIdx); setOptionsOpen(null); }}
-                      className="block w-full text-left text-sm text-blue-300 hover:text-blue-400 mt-1"
+                      className="block w-full text-left text-base text-blue-300 hover:text-blue-400 mt-1"
                     >
                       ⏱ Set Rest Timer
                     </button>
@@ -436,7 +436,7 @@ export default function WorkoutTab() {
                         setSelectedExercises(updated);
                         setOptionsOpen(null);
                       }}
-                      className="block w-full text-left text-sm text-red-400 hover:text-red-500 mt-1"
+                      className="block w-full text-left text-base text-red-400 hover:text-red-500 mt-1"
                     >
                       ❌ Remove Exercise
                     </button>
@@ -449,7 +449,7 @@ export default function WorkoutTab() {
                   <div className="relative w-14">
   <button
     onClick={() => setActiveSetTag({ exerciseIdx, setIdx })}
-    className="text-sm text-gray-400 text-left w-full"
+    className="text-base text-gray-400 text-left w-full"
   >
     {set.tag === 'Warm-Up'
       ? 'WU'
@@ -473,7 +473,7 @@ export default function WorkoutTab() {
               updateSetValue(exerciseIdx, setIdx, 'tag', tagOption);
               setActiveSetTag(null);
             }}
-            className="block w-full text-left text-sm py-1 hover:bg-gray-700 text-white"
+            className="block w-full text-left text-base py-1 hover:bg-gray-700 text-white"
           >
             {tagOption || 'None'}
           </button>
@@ -491,19 +491,19 @@ export default function WorkoutTab() {
                         type="text"
                         placeholder="Distance (mi/km)"
                         value={set.distance || ''}
-                        onChange={(e) =>
+                        onChange={(e) = style={ fontSize: "16px" }>
                           updateSetValue(exerciseIdx, setIdx, 'distance', e.target.value)
                         }
-                        className="bg-gray-700 rounded px-2 py-1 text-sm w-24"
+                        className="bg-gray-700 rounded px-2 py-1 text-base w-24"
                       />
                       <input
                         type="text"
                         placeholder="Time (min)"
                         value={set.time || ''}
-                        onChange={(e) =>
+                        onChange={(e) = style={ fontSize: "16px" }>
                           updateSetValue(exerciseIdx, setIdx, 'time', e.target.value)
                         }
-                        className="bg-gray-700 rounded px-2 py-1 text-sm w-24"
+                        className="bg-gray-700 rounded px-2 py-1 text-base w-24"
                       />
                     </>
                   ) : (
@@ -512,19 +512,19 @@ export default function WorkoutTab() {
                         type="number"
                         placeholder="lbs"
                         value={set.weight}
-                        onChange={(e) =>
+                        onChange={(e) = style={ fontSize: "16px" }>
                           updateSetValue(exerciseIdx, setIdx, 'weight', e.target.value)
                         }
-                        className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
+                        className="bg-gray-700 rounded px-2 py-1 text-base w-20"
                       />
                       <input
                         type="number"
                         placeholder="reps"
                         value={set.reps}
-                        onChange={(e) =>
+                        onChange={(e) = style={ fontSize: "16px" }>
                           updateSetValue(exerciseIdx, setIdx, 'reps', e.target.value)
                         }
-                        className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
+                        className="bg-gray-700 rounded px-2 py-1 text-base w-20"
                       />
                     </>
                   )}
@@ -550,7 +550,7 @@ export default function WorkoutTab() {
 
               <button
                 onClick={() => addSet(exerciseIdx)}
-                className="text-sm text-green-400 hover:text-green-500"
+                className="text-base text-green-400 hover:text-green-500"
               >
                 + Add Set
               </button>
