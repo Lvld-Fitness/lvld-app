@@ -1,0 +1,43 @@
+.rest-timer-container {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 50;
+  }
+  
+  .circle {
+    position: relative;
+    width: 64px;
+    height: 64px;
+  }
+  
+  .circular-chart {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+  
+  .circle-bg {
+    fill: none;
+    stroke: #2d3748;
+    stroke-width: 4;
+  }
+  
+  .circle-progress {
+    fill: none;
+    stroke: #38b2ac;
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.25s linear;
+  }
+  
+  .timer-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1rem;
+    color: #ffffff;
+    font-weight: bold;
+  }
+  

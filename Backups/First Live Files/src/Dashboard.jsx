@@ -3,8 +3,6 @@ import WorkoutTab from './WorkoutTab';
 import FeedTab from './FeedTab';
 import ProfileTab from './ProfileTab';
 import RestFloatingTimer from './RestFloatingTimer';
-import TeamsTab from './TeamsTab';
-import { Barbell, UsersThree, UserList, House } from 'phosphor-react';
 
 
 export default function Dashboard({ setTheme }) {
@@ -49,8 +47,6 @@ useEffect(() => {
         return <FeedTab />;
       case 'profile':
         return <ProfileTab setTheme={setTheme} />;
-        case 'teams':
-        return <TeamsTab />;
       default:
         return <WorkoutTab />;
     }
@@ -80,35 +76,24 @@ useEffect(() => {
             activeTab === 'workout' ? 'text-green-400' : 'text-gray-300'
           }`}
         >
-          <Barbell size={24} weight="bold" className="mx-auto" />
+          Workout
         </button>
-        
         <button
-          onClick={() => setActiveTab('teams')}
-          className={`text-sm font-semibold ${
-            activeTab === 'teams' ? 'text-green-400' : 'text-gray-300'
-          }`}
-        >
-          <UsersThree size={24} weight="bold" className="mx-auto" />
-        </button>
-<button
           onClick={() => setActiveTab('feed')}
           className={`text-sm font-semibold ${
             activeTab === 'feed' ? 'text-green-400' : 'text-gray-300'
           }`}
         >
-          <UserList size={24} weight="bold" className="mx-auto" />
+          Feed
         </button>
-        
         <button
           onClick={() => setActiveTab('profile')}
           className={`text-sm font-semibold ${
             activeTab === 'profile' ? 'text-green-400' : 'text-gray-300'
           }`}
         >
-          <House size={24} weight="bold" className="mx-auto" />
+          Profile
         </button>
-
       </nav>
     </div>
   );

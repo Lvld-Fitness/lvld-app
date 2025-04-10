@@ -324,12 +324,6 @@ export default function WorkoutTab() {
           >
             Exercises
           </button>
-          <button
-            onClick={() => setShowGymModal(true)}
-            className="w-full bg-purple-700 hover:bg-purple-800 py-3 rounded text-lg font-bold mb-4"
-          >
-            Gym Scan-In
-          </button>
 
 
 
@@ -357,29 +351,7 @@ export default function WorkoutTab() {
                       </div>
                       <div className="absolute top-4 right-4 flex gap-2">
                         <button
-                          onClick={() => {
-      const shareText = `
-Workout: ${workout.name}
-Date: ${new Date(workout.timestamp).toLocaleString()}
-Duration: ${workout.duration || 'N/A'} mins
-Total Weight: ${workout.totalWeight || 0} lbs
-
-Exercises:
-${workout.exercises.map(ex => 
-  `- ${ex.name}: ${ex.sets.map(set => `${set.reps} reps @ ${set.weight} lbs`).join(', ')}`
-).join('\n')}
-      `.trim();
-
-      if (navigator.share) {
-        navigator.share({
-          title: 'LVLD Workout',
-          text: shareText
-        });
-      } else {
-        navigator.clipboard.writeText(shareText);
-        alert("Workout copied to clipboard!");
-      }
-    }}
+                          onClick={() => navigator.clipboard.writeText(JSON.stringify(workout))}
                           className="text-blue-400 hover:text-blue-500 text-sm"
                         >
                           Share
@@ -612,15 +584,41 @@ ${workout.exercises.map(ex =>
       {showGymModal && <GymScanModal onClose={() => setShowGymModal(false)} />}
 
       
+{selectedExercises.length > 0 && (
+  <button
+    onClick={() => setShowGymModal(true)}
+    className="fixed bottom-20 left-4 bg-purple-700 hover:bg-purple-800 text-white p-2 rounded-full shadow-md"
+    title="Gym Scan-In"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+    </svg>
+  </button>
+)}
 
 
 
+  <button
+    onClick={() => setShowGymModal(true)}
+    className="fixed bottom-20 left-4 bg-purple-700 hover:bg-purple-800 text-white p-2 rounded-full shadow-md z-50"
+    title="Gym Scan-In"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+    </svg>
+  </button>
 
-  
 
 
-
-  
+  <button
+    onClick={() => setShowGymModal(true)}
+    className="fixed bottom-20 left-4 bg-purple-700 hover:bg-purple-800 text-white p-2 rounded-full shadow-md z-50"
+    title="Gym Scan-In"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+    </svg>
+  </button>
 
 
 {showPicker && (
