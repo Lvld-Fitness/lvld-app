@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -46,7 +45,15 @@ export default function PremadeWorkoutPage() {
   };
 
   return (
-    <div className="p-4 bg-black min-h-screen text-white">
+    <div className="p-4 bg-black min-h-screen text-white relative">
+      {/* Exit button */}
+      <button
+        onClick={() => navigate('/dashboard')}
+        className="absolute top-4 right-4 text-2xl text-gray-400 hover:text-white"
+      >
+        ✖
+      </button>
+
       <h1 className="text-2xl font-bold mb-4 text-center">Premade Workouts</h1>
       <div className="space-y-4">
         {Object.entries(categorizedWorkouts).map(([category, workouts], idx) => (
