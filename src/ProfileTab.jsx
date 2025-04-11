@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Gear } from 'phosphor-react';
 
@@ -14,10 +13,15 @@ export default function ProfileTab() {
   const [xpProgress, setXpProgress] = useState(0);
   const [weeklyStreak, setWeeklyStreak] = useState(0);
   const [totalWeight, setTotalWeight] = useState(0);
+  const [totalDistance, setTotalDistance] = useState(0);
+  const [useKilometers, setUseKilometers] = useState(() => localStorage.getItem('distanceUnit') === 'km');
+  const [useKilograms, setUseKilograms] = useState(() => localStorage.getItem('weightUnit') === 'kg');
+  
 
   useEffect(() => {
     const storedWorkouts = JSON.parse(localStorage.getItem('workoutHistory')) || [];
     let total = 0;
+    let distance = 0;
     const now = new Date();
     const recentDays = new Set();
 
@@ -36,29 +40,31 @@ export default function ProfileTab() {
           const reps = parseInt(set.reps) || 0;
           const weight = parseFloat(set.weight) || 0;
           total += reps * weight;
+          distance += parseFloat(set.distance || 0);
         });
       });
     });
 
     setTotalWeight(total);
+    setTotalDistance(distance);
     setWeeklyStreak(recentDays.size);
+    setXp(total + distance * 1000);
   }, []);
 
   useEffect(() => {
-    setXp(totalWeight);
-    let level = 1;
-    let xpRemaining = totalWeight;
+    let currentLevel = 1;
+    let xpRemaining = xp;
     let xpToNext = 1000;
 
     while (xpRemaining >= xpToNext) {
       xpRemaining -= xpToNext;
-      level++;
-      xpToNext = level * 1000;
+      currentLevel++;
+      xpToNext = currentLevel * 1000;
     }
 
-    setLevel(level);
+    setLevel(currentLevel);
     setXpProgress(Math.floor((xpRemaining / xpToNext) * 100));
-  }, [totalWeight]);
+  }, [xp]);
 
   useEffect(() => {
     const storedPic = localStorage.getItem('profilePic');
@@ -83,6 +89,15 @@ export default function ProfileTab() {
       reader.readAsDataURL(file);
     }
   };
+
+  const toggleDistanceUnit = () => {
+    const newSetting = !useKilometers;
+    setUseKilometers(newSetting);
+    localStorage.setItem('distanceUnit', newSetting ? 'km' : 'mi');
+  };
+
+  const displayDistance = useKilometers ? (totalDistance * 1.60934).toFixed(2) + ' km' : totalDistance.toFixed(2) + ' mi';
+  const displayWeight = useKilograms ? (totalWeight * 0.453592).toFixed(0).toLocaleString() + ' kg' : totalWeight.toLocaleString() + ' lbs';
 
   return (
     <div className="p-4 text-white bg-black min-h-screen relative">
@@ -130,9 +145,13 @@ export default function ProfileTab() {
           </p>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 text-center w-full max-w-2xl">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mt-6 text-center w-full max-w-2xl">
           <div>
-            <p className="text-2xl font-extrabold">{totalWeight.toLocaleString()}</p>
+            <p className="text-2xl font-extrabold">{displayDistance}</p>
+            <p className="text-gray-400 text-xs mt-1">DISTANCE TRAVELED</p>
+          </div>
+          <div>
+            <p className="text-2xl font-extrabold">{displayWeight}</p>
             <p className="text-gray-400 text-xs mt-1">TOTAL WEIGHT LIFTED</p>
           </div>
           <div>
@@ -140,16 +159,19 @@ export default function ProfileTab() {
             <p className="text-gray-400 text-xs mt-1">WEEKLY STREAK</p>
           </div>
           <div>
-            <p className="text-2xl font-extrabold text-red-500 mb-1">XP</p>
-            <div className="w-full bg-gray-700 rounded-full h-3 mb-1 overflow-hidden">
-              <div className="bg-green-500 h-3 rounded-full" style={{ width: `${xpProgress}%` }}></div>
-            </div>
-          </div>
-          <div>
             <p className="text-2xl font-extrabold text-white">Level {level}</p>
             <p className="text-gray-400 text-xs mt-1">ACCOUNT LEVEL</p>
           </div>
         </div>
+
+        <div className="mt-6 text-center w-full max-w-2xl">
+          <p className="text-2xl font-extrabold text-red-500 mb-1">XP</p>
+          <div className="w-full bg-gray-700 rounded-full h-3 mb-1 overflow-hidden">
+            <div className="bg-green-500 h-3 rounded-full" style={{ width: `${xpProgress}%` }}></div>
+          </div>
+        </div>
+
+        
 
         {showSettings && (
           <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
@@ -161,9 +183,9 @@ export default function ProfileTab() {
                   type="text"
                   value={name}
                   onChange={(e) => {
-                  setName(e.target.value);
-                  localStorage.setItem('profileName', e.target.value);
-                }}
+                    setName(e.target.value);
+                    localStorage.setItem('profileName', e.target.value);
+                  }}
                   className="w-full px-2 py-1 rounded bg-gray-800 text-white"
                 />
               </div>
@@ -173,14 +195,35 @@ export default function ProfileTab() {
                   type="text"
                   value={handle}
                   onChange={(e) => {
-                  setHandle(e.target.value);
-                  localStorage.setItem('profileHandle', e.target.value);
-                }}
+                    setHandle(e.target.value);
+                    localStorage.setItem('profileHandle', e.target.value);
+                  }}
                   className="w-full px-2 py-1 rounded bg-gray-800 text-white"
                 />
               </div>
-              <button
-                onClick={() => setShowSettings(false)}
+              <div>
+                <label className="block text-sm mb-1">Distance Units</label>
+                <button
+                  onClick={toggleDistanceUnit}
+                  className="w-full bg-gray-700 hover:bg-gray-600 py-1 px-2 rounded text-sm"
+                >
+                  Switch to {useKilometers ? 'Miles' : 'Kilometers'}
+                </button>
+              </div>
+              <div>
+                <label className="block text-sm mb-1">Weight Units</label>
+                <button
+                  onClick={() => {
+                    const newSetting = !useKilograms;
+                    setUseKilograms(newSetting);
+                    localStorage.setItem('weightUnit', newSetting ? 'kg' : 'lbs');
+                  }}
+                  className="w-full bg-gray-700 hover:bg-gray-600 py-1 px-2 rounded text-sm"
+                >
+                  Switch to {useKilograms ? 'Pounds' : 'Kilograms'}
+                </button>
+              </div>
+              <button onClick={() => setShowSettings(false)}
                 className="w-full mt-4 bg-green-600 hover:bg-green-700 py-2 rounded font-bold"
               >
                 Done

@@ -4,15 +4,15 @@ import { useNavigate } from 'react-router-dom';
 
 const categorizedWorkouts = {
   'Push Day': [
-    ['Push Day (Classic)', ['Treadmill - 5 min', 'Bench Press', 'Shoulder Press', 'Tricep Dips']],
+    ['Push Day (Classic)', ['Treadmill Walk', 'Bench Press', 'Shoulder Press', 'Tricep Dips']],
     ['Push Day (Machine)', ['Bike - 5 min', 'Chest Press (Machine)', 'Shoulder Press (Machine)', 'Tricep Extension']]
   ],
   'Pull Day': [
-    ['Pull Day (Rows)', ['Row Machine - 5 min', 'Barbell Rows', 'Face Pulls', 'Bicep Curls']],
+    ['Pull Day (Rows)', ['Row Machine', 'Barbell Rows', 'Face Pulls', 'Bicep Curls']],
     ['Pull Day (Lat Focus)', ['Lat Pulldown', 'Seated Cable Row', 'Reverse Fly', 'Hammer Curl']]
   ],
   'Leg Day': [
-    ['Leg Day (Heavy)', ['Bike - 5 min', 'Squat (Barbell)', 'Leg Press', 'Calf Raises']],
+    ['Leg Day (Heavy)', ['Bike', 'Squat (Barbell)', 'Leg Press', 'Calf Raises']],
     ['Leg Day (Machine)', ['Walk - 5 min', 'Leg Extension', 'Leg Curl', 'Hip Abduction']]
   ],
   'Chest Day': [
@@ -32,7 +32,7 @@ const categorizedWorkouts = {
     ['Core Blast #2', ['Sit-Up', 'Cable Crunch', 'Toe Touches', 'Mountain Climbers']]
   ],
   'Custom Premades': [
-    ['Push Day (Classic)', ['Treadmill - 5 min', 'Bench Press', 'Shoulder Press', 'Tricep Dips']],
+    ['Push Day (Classic)', ['Treadmill Walk', 'Bench Press', 'Shoulder Press', 'Tricep Dips']],
     ['Push Day (Machine)', ['Bike - 5 min', 'Chest Press (Machine)', 'Shoulder Press (Machine)', 'Tricep Extension']]
   ],
 };
