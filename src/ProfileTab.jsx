@@ -64,7 +64,7 @@ export default function ProfileTab() {
     let distance = 0;
     const now = new Date();
     const recentDays = new Set();
-
+  
     storedWorkouts.forEach(workout => {
       if (workout.timestamp) {
         const workoutDate = new Date(workout.timestamp);
@@ -73,7 +73,7 @@ export default function ProfileTab() {
           recentDays.add(workoutDate.toISOString().split('T')[0]);
         }
       }
-
+  
       workout.exercises?.forEach(ex => {
         ex.sets?.forEach(set => {
           const reps = parseInt(set.reps) || 0;
@@ -83,16 +83,20 @@ export default function ProfileTab() {
         });
       });
     });
-
+  
+    // Update local state
     setTotalWeight(total);
     setTotalDistance(distance);
     setWeeklyStreak(recentDays.size);
-    const totalXp = total + distance * 1000;
-    setXp(totalXp);
-
-    saveUserData('totalWeight', total);
-    saveUserData('totalDistance', distance);
-  }, []);
+    setXp(total + distance * 1000);
+  
+    // Then update Firebase
+    if (uid) {
+      saveUserData('totalWeight', total);
+      saveUserData('totalDistance', distance);
+    }
+  }, [uid]); // <- rerun when user is known
+  
 
   useEffect(() => {
     let currentLevel = 1;
