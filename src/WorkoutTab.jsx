@@ -58,6 +58,8 @@ export default function WorkoutTab() {
   const [pendingRestTrigger, setPendingRestTrigger] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [replaceIdx, setReplaceIdx] = useState(null);
+
 
 
 
@@ -185,11 +187,10 @@ const calculateWeeklyStreak = (history) => {
   
 
   
-  // 💾 Save updated exercise list to Firebase when changed
+// 💾 Save updated exercises to Firebase and local
 const saveExercisesToFirebase = async (newList) => {
   setExerciseList(newList);
   localStorage.setItem('savedExercises', JSON.stringify(newList));
-
   const user = auth.currentUser;
   if (user) {
     const userRef = doc(db, 'users', user.uid);
@@ -431,13 +432,14 @@ const handleDeleteWorkout = async (indexToDelete) => {
                   return workoutDays.includes(formatted) ? 'bg-red-500 text-white rounded-full' : 'text-white';
                 }
               }}
+              
               onClickDay={(value) => {
                 const clickedDate = value.toISOString().split('T')[0];
                 const match = workoutHistory.find(w =>
                   new Date(w.timestamp).toISOString().split('T')[0] === clickedDate
                 );
                 if (match) {
-                  alert(`Workout: ${match.name}\nDate: ${new Date(match.timestamp).toLocaleString()}`);
+                  setCalendarWorkoutPopup(match);
                 }
               }}
             />
@@ -532,7 +534,7 @@ ${workout.exercises.map(ex =>
       ) : (
         
         <>
-          <p className="text-sm text-gray-400 mb-2">
+          <p className="text-lg text-gray-400 mb-2">
             Workout Time: <span className="text-white">{formatTime(elapsedTime)}</span>
           </p>
 
@@ -574,6 +576,13 @@ ${workout.exercises.map(ex =>
                     >
                       ⏱ Set Rest Timer
                     </button>
+                    <button
+                      onClick={() => { setShowPicker({ replaceIdx: exerciseIdx })}}
+                      className="block w-full text-left text-sm text-purple-300 hover:text-purple-400 mt-1"
+                    >
+                      🔁 Replace Exercise
+                    </button>
+
                     <button
                       onClick={() => {
                         const updated = [...selectedExercises];
@@ -740,15 +749,26 @@ ${workout.exercises.map(ex =>
   
 
 
-{showPicker && (
-        <ExercisePickerModal
-        selectedExercises={selectedExercises}
-        setSelectedExercises={setSelectedExercises}
-        onClose={() => setShowPicker(false)}
-        exerciseList={exerciseList}
-      />
-      
-      )}
+      {showPicker && (
+  <ExercisePickerModal
+    selectedExercises={selectedExercises}
+    setSelectedExercises={(newExercises) => {
+      if (typeof showPicker === 'object' && showPicker.replaceIdx !== undefined) {
+        const updated = [...selectedExercises];
+        newExercises.forEach((ex, i) => {
+          updated.splice(showPicker.replaceIdx + i, 1, ex);
+        });
+        setSelectedExercises(updated);
+      } else {
+        setSelectedExercises([...selectedExercises, ...newExercises]);
+      }
+      setShowPicker(false);
+    }}
+    onClose={() => setShowPicker(false)}
+    exerciseList={exerciseList}
+  />
+)}
+
 
 
       {showNoteModal !== null && (
