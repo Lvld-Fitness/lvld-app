@@ -61,7 +61,25 @@ export default function WorkoutTab() {
 
 
 
+// In useEffect (on mount):
+useEffect(() => {
+  const fetchWorkoutHistory = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
 
+    const userRef = doc(db, 'users', user.uid);
+    const snap = await getDoc(userRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data.workoutHistory) {
+        setWorkoutHistory(data.workoutHistory);
+        localStorage.setItem('workoutHistory', JSON.stringify(data.workoutHistory));
+      }
+    }
+  };
+
+  fetchWorkoutHistory();
+}, []);
   
 
 
@@ -252,7 +270,7 @@ export default function WorkoutTab() {
     localStorage.removeItem('workoutStartTime');
   };
 
-  const finishWorkout = () => {
+  const finishWorkout = async () => {
     const completedWorkout = {
       name: workoutName || `Workout - ${new Date().toLocaleDateString()}`,
       timestamp: Date.now(),
@@ -265,6 +283,14 @@ export default function WorkoutTab() {
     setWorkoutHistory(updatedHistory);
     localStorage.setItem('workoutHistory', JSON.stringify(updatedHistory));
   
+    const user = auth.currentUser;
+    if (user) {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        workoutHistory: updatedHistory
+      });
+    }
+  
     setSelectedExercises([]);
     setWorkoutName('');
     setWorkoutStartTime(null);
@@ -273,11 +299,21 @@ export default function WorkoutTab() {
   };
   
 
-  const handleDeleteWorkout = (indexToDelete) => {
-    const updated = workoutHistory.filter((_, idx) => idx !== indexToDelete);
-    setWorkoutHistory(updated);
-    localStorage.setItem('workoutHistory', JSON.stringify(updated));
-  };
+// And your handleDeleteWorkout function:
+const handleDeleteWorkout = async (indexToDelete) => {
+  const updated = workoutHistory.filter((_, idx) => idx !== indexToDelete);
+  setWorkoutHistory(updated);
+  localStorage.setItem('workoutHistory', JSON.stringify(updated));
+
+  const user = auth.currentUser;
+  if (user) {
+    const userRef = doc(db, 'users', user.uid);
+    await updateDoc(userRef, {
+      workoutHistory: updated
+    });
+  }
+};
+
   
 
 
