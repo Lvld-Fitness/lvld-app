@@ -63,7 +63,7 @@ export default function WorkoutTab() {
 
 // In useEffect (on mount):
 useEffect(() => {
-  const fetchWorkoutHistory = async () => {
+  const fetchUserData = async () => {
     const user = auth.currentUser;
     if (!user) return;
 
@@ -75,11 +75,34 @@ useEffect(() => {
         setWorkoutHistory(data.workoutHistory);
         localStorage.setItem('workoutHistory', JSON.stringify(data.workoutHistory));
       }
+      if (data.savedExercises) {
+        setExerciseList(data.savedExercises);
+        localStorage.setItem('savedExercises', JSON.stringify(data.savedExercises));
+      }
     }
   };
 
-  fetchWorkoutHistory();
+  fetchUserData();
 }, []);
+
+// Weekly Streak
+const calculateWeeklyStreak = (history) => {
+  const now = new Date();
+  const recentDays = new Set();
+
+  history.forEach(workout => {
+    if (workout.timestamp) {
+      const workoutDate = new Date(workout.timestamp);
+      const daysAgo = (now - workoutDate) / (1000 * 60 * 60 * 24);
+      if (daysAgo <= 7) {
+        recentDays.add(workoutDate.toISOString().split('T')[0]);
+      }
+    }
+  });
+
+  return recentDays.size;
+};
+
   
 
 
@@ -162,21 +185,49 @@ useEffect(() => {
   
 
   
-  const staticCardio = [
-    'Air Bike Sprint', 'Battle Ropes', 'Battle Ropes (Alternating)', 'Bear Crawl', 'Biking (Spin Bike)',
-    'Cycling', 'Elliptical', 'Farmer Carry (Dumbbell)', 'Farmer Carry (Kettlebell)', 'High Knees',
-    'Indoor Running', 'Jumping Jacks', 'Outdoor Running', 'Rowing Machine', 'Rowing Sprint', 'Shadow Boxing',
-    'Sled Pull', 'Sled Push', 'Stairmaster', 'Treadmill Run', 'Treadmill Sprint', 'Treadmill Walk',
-    'Walking Lunge (Barbell)', 'Walking Lunge (Dumbbell)', 'Wall Ball (Medicine Ball)', 'VR Gaming',
-  ];
+  // 💾 Save updated exercise list to Firebase when changed
+const saveExercisesToFirebase = async (newList) => {
+  setExerciseList(newList);
+  localStorage.setItem('savedExercises', JSON.stringify(newList));
 
-  const saved = localStorage.getItem('savedExercises');
-  const userExercises = saved ? JSON.parse(saved) : [];
-  const userCardio = userExercises
-    .filter(e => e.type === 'cardio')
-    .map(e => e.name);
+  const user = auth.currentUser;
+  if (user) {
+    const userRef = doc(db, 'users', user.uid);
+    await updateDoc(userRef, {
+      savedExercises: newList
+    });
+  }
+};
 
-  const cardioExercises = [...staticCardio, ...userCardio];
+// 🔁 Update an exercise name and sync with Firebase
+const renameExercise = async (oldName, newName) => {
+  const updated = exerciseList.map(ex =>
+    ex.name === oldName ? { ...ex, name: newName } : ex
+  );
+  await saveExercisesToFirebase(updated);
+};
+
+// 🔁 Delete an exercise and sync with Firebase
+const deleteExercise = async (nameToDelete) => {
+  const updated = exerciseList.filter(ex => ex.name !== nameToDelete);
+  await saveExercisesToFirebase(updated);
+};
+
+// 📋 Combine static and saved cardio exercise names
+const staticCardio = [
+  'Air Bike Sprint', 'Battle Ropes', 'Battle Ropes (Alternating)', 'Bear Crawl', 'Biking (Spin Bike)',
+  'Cycling', 'Elliptical', 'Farmer Carry (Dumbbell)', 'Farmer Carry (Kettlebell)', 'High Knees',
+  'Indoor Running', 'Jumping Jacks', 'Outdoor Running', 'Rowing Machine', 'Rowing Sprint', 'Shadow Boxing',
+  'Sled Pull', 'Sled Push', 'Stairmaster', 'Treadmill Run', 'Treadmill Sprint', 'Treadmill Walk',
+  'Walking Lunge (Barbell)', 'Walking Lunge (Dumbbell)', 'Wall Ball (Medicine Ball)', 'VR Gaming'
+];
+
+const userCardio = exerciseList
+  .filter(e => e.type === 'cardio')
+  .map(e => e.name);
+
+const cardioExercises = [...staticCardio, ...userCardio];
+
 
 
   const formatTime = (s) => {
@@ -399,7 +450,7 @@ const handleDeleteWorkout = async (indexToDelete) => {
             Gym Scan-In
           </button>
 
-{showPastWorkouts && (
+          {showPastWorkouts && (
             <div className="fixed inset-0 bg-black bg-opacity-90 z-50 overflow-y-auto p-4">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-white text-xl font-bold">Your Past Workouts</h2>
