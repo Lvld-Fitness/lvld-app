@@ -85,7 +85,7 @@ export default function Signup() {
             <div className="bg-white text-black p-6 rounded max-w-md max-h-[80vh] overflow-y-auto">
               <h2 className="text-xl font-bold mb-4">Terms of Service</h2>
               <p className="text-sm mb-4">
-                By using LVLD, you agree to abide by our community standards. You must be at least 16 years old.
+                Thank you for choosing LVLD! By using LVLD, you agree to abide by our community standards. You must be at least 16 years old.
                 Do not impersonate others, post harmful or illegal content, or abuse the platform. Your data is
                 stored securely and is not sold to third parties. We may update our terms at any time, and continued
                 use of the platform implies your acceptance of those changes.

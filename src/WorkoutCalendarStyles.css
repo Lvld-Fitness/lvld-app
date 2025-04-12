@@ -1,0 +1,22 @@
+/* WorkoutCalendarStyles.css */
+.react-calendar {
+    background-color: #1f1f1f;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 1rem;
+  }
+  
+  .react-calendar__tile {
+    border-radius: 50%;
+  }
+  
+  .react-calendar__tile--now {
+    background: #444;
+  }
+  
+  .react-calendar__tile--active {
+    background: #16a34a;
+    color: white;
+  }
+  

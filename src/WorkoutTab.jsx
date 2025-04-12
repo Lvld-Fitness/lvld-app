@@ -9,6 +9,11 @@ import { useRestTimer } from './RestTimerContext';
 import { useGlobalRestTimer } from './GlobalRestTimerContext'; // or your path
 import { useNavigate } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css'; // Add this to your index.css if needed
+import './WorkoutCalendarStyles.css'; // Custom styles we'll define
+import { db, auth } from './firebase';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 
 
@@ -57,6 +62,7 @@ export default function WorkoutTab() {
 
 
 
+  
 
 
   useEffect(() => {
@@ -299,41 +305,65 @@ export default function WorkoutTab() {
         <>
           <button
             onClick={() => setShowPicker(true)}
-            className="w-full bg-green-600 hover:bg-green-700 py-3 rounded text-lg font-bold mb-4"
+            className="w-full bg-red-500 hover:bg-red-700 py-3 rounded text-lg font-bold mb-4"
           >
             Start Custom Workout
           </button>
 
           <button
             onClick={() => navigate('/premade')}
-            className="w-full bg-orange-600 hover:bg-orange-700 py-3 rounded text-lg font-bold mb-4"
+            className="w-full bg-red-500 hover:bg-red-700 py-3 rounded text-lg font-bold mb-4"
           >
             Premade Workouts
           </button>
 
           <button
             onClick={() => setShowPastWorkouts(true)}
-            className="w-full bg-gray-700 hover:bg-gray-600 py-3 rounded text-lg font-bold mb-4"
+            className="w-full bg-red-500 hover:bg-red-700 py-3 rounded text-lg font-bold mb-4"
           >
             See Past Workouts
           </button>
 
           <button
             onClick={() => setShowPicker('edit')}
-            className="w-full bg-yellow-600 hover:bg-yellow-700 py-3 rounded text-lg font-bold mb-4"
+            className="w-full bg-red-500 hover:bg-red-700 py-3 rounded text-lg font-bold mb-4"
           >
             Exercises
           </button>
+
+          {/* Calendar showing workout days */}
+          <div className="bg-gray-900 p-4 rounded-lg mb-4">
+          <h2 className="text-lg font-bold mb-2 text-center">LVLD Calendar</h2>
+            <Calendar
+              tileClassName={({ date, view }) => {
+                if (view === 'month') {
+                  const formatted = date.toISOString().split('T')[0];
+                  const workoutDays = workoutHistory.map(w =>
+                    new Date(w.timestamp).toISOString().split('T')[0]
+                  );
+                  return workoutDays.includes(formatted) ? 'bg-red-500 text-white rounded-full' : 'text-white';
+                }
+              }}
+              onClickDay={(value) => {
+                const clickedDate = value.toISOString().split('T')[0];
+                const match = workoutHistory.find(w =>
+                  new Date(w.timestamp).toISOString().split('T')[0] === clickedDate
+                );
+                if (match) {
+                  alert(`Workout: ${match.name}\nDate: ${new Date(match.timestamp).toLocaleString()}`);
+                }
+              }}
+            />
+          </div>
+
           <button
             onClick={() => setShowGymModal(true)}
-            className="w-full bg-purple-700 hover:bg-purple-800 py-3 rounded text-lg font-bold mb-4"
+            className="w-full bg-red-500 hover:bg-red-700 py-3 rounded text-lg font-bold mb-4"
           >
             Gym Scan-In
           </button>
 
-
-
-          {showPastWorkouts && (
+{showPastWorkouts && (
             <div className="fixed inset-0 bg-black bg-opacity-90 z-50 overflow-y-auto p-4">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-white text-xl font-bold">Your Past Workouts</h2>
@@ -366,7 +396,7 @@ Total Weight: ${workout.totalWeight || 0} lbs
 
 Exercises:
 ${workout.exercises.map(ex => 
-  `- ${ex.name}: ${ex.sets.map(set => `${set.reps} reps @ ${set.weight} lbs`).join(', ')}`
+  `- ${ex.name}: \n ${ex.sets.map(set => `${set.weight} lbs - ${set.reps} reps`).join('\n ')}`
 ).join('\n')}
       `.trim();
 
@@ -399,7 +429,7 @@ ${workout.exercises.map(ex =>
                           <p className="font-semibold">{ex.name}</p>
                           {ex.sets.map((set, i) => (
                             <p key={i} className="text-gray-300 ml-4">
-                              {set.tag ? `${set.tag}` : `Set ${i + 1}`} — {set.reps} reps @ {set.weight} lbs
+                              {set.tag ? `${set.tag}` : `Set ${i + 1}`} : {set.weight} lbs - {set.reps} reps
                             </p>
                           ))}
                         </div>
