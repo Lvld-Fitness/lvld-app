@@ -50,7 +50,7 @@ export default function ExercisePickerModal({
         ],
       }));
 
-    setSelectedExercises((prev) => [...prev, ...newExercises]);
+    setSelectedExercises(newExercises);
     setHighlighted([]); // Clear selection
     onClose(); // Close the modal
   };

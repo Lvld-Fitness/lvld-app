@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.7",
     "firebase": "^11.5.0",
     "lucide-react": "^0.487.0",
     "phosphor-react": "^1.4.1",

@@ -1,4 +1,5 @@
 
+import ProfileTab from './ProfileTab'; // make sure this is at the top
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -9,6 +10,7 @@ import { RestTimerProvider } from './RestTimerContext';
 import { GlobalRestTimerProvider } from './GlobalRestTimerContext';
 import PremadeWorkoutPage from './PremadeWorkoutPage';
 import Signup from './Signup';
+
 
 
 export default function App() {
@@ -50,6 +52,20 @@ export default function App() {
               <RestTimerProvider>
                 <GlobalRestTimerProvider>
                   <PremadeWorkoutPage />
+                </GlobalRestTimerProvider>
+              </RestTimerProvider>
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            user ? (
+              <RestTimerProvider>
+                <GlobalRestTimerProvider>
+                  <ProfileTab />
                 </GlobalRestTimerProvider>
               </RestTimerProvider>
             ) : (

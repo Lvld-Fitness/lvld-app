@@ -28,6 +28,9 @@ export default function ProfileTab() {
   const [useKilometers, setUseKilometers] = useState(() => localStorage.getItem('distanceUnit') === 'km');
   const [useKilograms, setUseKilograms] = useState(() => localStorage.getItem('weightUnit') === 'kg');
 
+  const [showDistanceBreakdown, setShowDistanceBreakdown] = useState(false);
+  const [distanceByType, setDistanceByType] = useState({ walkRun: 0, bike: 0 });
+
   useEffect(() => {
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -52,6 +55,31 @@ export default function ProfileTab() {
       setTotalDistance(data.totalDistance || 0);
     }
   };
+
+  
+        {/*} ⬇️ Add this useEffect under your others*/}
+        useEffect(() => {
+          const storedWorkouts = JSON.parse(localStorage.getItem('workoutHistory')) || [];
+          let walkRun = 0;
+          let bike = 0;
+    
+      storedWorkouts.forEach(workout => {
+        workout.exercises?.forEach(ex => {
+          ex.sets?.forEach(set => {
+            const dist = parseFloat(set.distance || 0);
+            if (dist > 0) {
+              if (/bike|cycling/i.test(ex.name)) {
+                bike += dist;
+              } else if (/walk|run|treadmill|jog|sprint/i.test(ex.name)) {
+                walkRun += dist;
+              }
+            }
+          });
+        });
+      });
+    
+      setDistanceByType({ walkRun, bike });
+    }, [totalDistance]);
 
   const saveUserData = async (field, value) => {
     if (!uid) return;
@@ -176,10 +204,25 @@ export default function ProfileTab() {
         )}
 
         <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mt-6 text-center w-full max-w-2xl">
+
+          {/*} JSX section to replace*/}
           <div>
-            <p className="text-2xl font-extrabold">{displayDistance}</p>
+            <p
+              onClick={() => setShowDistanceBreakdown(!showDistanceBreakdown)}
+              className="text-2xl font-extrabold cursor-pointer"
+            >
+              {displayDistance}
+            </p>
             <p className="text-gray-400 text-xs mt-1">TOTAL DISTANCE TRAVELED</p>
+
+            {showDistanceBreakdown && (
+              <div className="mt-2 text-sm text-gray-300 space-y-1">
+                <p>🏃 Walk/Run: {useKilometers ? (distanceByType.walkRun * 1.60934).toFixed(2) + ' km' : distanceByType.walkRun.toFixed(2) + ' mi'}</p>
+                <p>🚴 Bike: {useKilometers ? (distanceByType.bike * 1.60934).toFixed(2) + ' km' : distanceByType.bike.toFixed(2) + ' mi'}</p>
+              </div>
+            )}
           </div>
+
           <div>
             <p className="text-2xl font-extrabold">{displayWeight}</p>
             <p className="text-gray-400 text-xs mt-1">TOTAL WEIGHT LIFTED</p>
@@ -227,6 +270,31 @@ export default function ProfileTab() {
                 <label className="block text-sm mb-1">Weight Units</label>
                 <button onClick={() => { const newSetting = !useKilograms; setUseKilograms(newSetting); localStorage.setItem('weightUnit', newSetting ? 'kg' : 'lbs'); }} className="w-full bg-gray-700 hover:bg-gray-600 py-1 px-2 rounded text-sm">Switch to {useKilograms ? 'Pounds' : 'Kilograms'}</button>
               </div>
+              {/* 🔁 Reset Buttons for Distance and Weight */}
+              <div className="space-y-2 mt-4">
+                <button
+                  onClick={async () => {
+                    setTotalDistance(0);
+                    await saveUserData('totalDistance', 0);
+                    localStorage.setItem('workoutHistory', JSON.stringify([]));
+                  }}
+                  className="w-full bg-blue-700 hover:bg-blue-800 py-2 rounded text-sm"
+                >
+                  Reset Distance
+                </button>
+
+                <button
+                  onClick={async () => {
+                    setTotalWeight(0);
+                    await saveUserData('totalWeight', 0);
+                    localStorage.setItem('workoutHistory', JSON.stringify([]));
+                  }}
+                  className="w-full bg-blue-700 hover:bg-blue-800 py-2 rounded text-sm"
+                >
+                  Reset Weight
+                </button>
+              </div>
+
               <button onClick={handleLogout} className="w-full mt-4 bg-red-600 hover:bg-red-700 py-2 rounded font-bold">Log Out</button>
             </div>
           </div>

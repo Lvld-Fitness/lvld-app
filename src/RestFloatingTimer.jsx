@@ -26,10 +26,14 @@ export default function RestFloatingTimer({ duration = 30, onComplete }) {
     if (progress > 0) {
       animationRef.current = requestAnimationFrame(animate);
     } else {
-      onComplete?.();
-      localStorage.setItem('rest-timer-alert', 'true');
+      if (onComplete) {
+        onComplete(); // Call passed onComplete, which includes the alert logic
+      } else {
+        // fallback
+        localStorage.setItem('rest-timer-alert', 'true');
+      }
     }
-  };
+    
 
   useEffect(() => {
     animationRef.current = requestAnimationFrame(animate);
@@ -41,4 +45,4 @@ export default function RestFloatingTimer({ duration = 30, onComplete }) {
       <div ref={barRef} className="h-full bg-green-500" style={{ width: '100%' }} />
     </div>
   );
-}
+}}
