@@ -47,11 +47,12 @@ export default function CreatePostModal({ onClose }) {
       
         setUploading(false);
         onClose();
-      } catch (err) {
-        console.error('Post failed:', err);
-        alert('Something went wrong while posting. Try again.');
-        setUploading(false);
-      }
+        } catch (err) {
+            console.error('Post failed:', err.code || err.message, err);
+            alert(`Something went wrong while posting. Error: ${err.code || err.message}`);
+            setUploading(false);
+        }
+      
   };
       
   return (
