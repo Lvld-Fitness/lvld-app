@@ -12,8 +12,6 @@ export default function RestFloatingTimer({ duration = 30, onComplete }) {
 
     if (barRef.current) {
       barRef.current.style.width = `${progress * 100}%`;
-
-      // Bar color
       if (progress > 0.66) {
         barRef.current.className = 'h-full bg-green-500';
       } else if (progress > 0.33) {
@@ -27,13 +25,12 @@ export default function RestFloatingTimer({ duration = 30, onComplete }) {
       animationRef.current = requestAnimationFrame(animate);
     } else {
       if (onComplete) {
-        onComplete(); // Call passed onComplete, which includes the alert logic
+        onComplete();
       } else {
-        // fallback
         localStorage.setItem('rest-timer-alert', 'true');
       }
     }
-    
+  };
 
   useEffect(() => {
     animationRef.current = requestAnimationFrame(animate);
@@ -45,4 +42,4 @@ export default function RestFloatingTimer({ duration = 30, onComplete }) {
       <div ref={barRef} className="h-full bg-green-500" style={{ width: '100%' }} />
     </div>
   );
-}}
+}

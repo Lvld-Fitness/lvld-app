@@ -1,5 +1,5 @@
 // 🌟 React and Utility Imports
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 
@@ -301,8 +301,17 @@ const toggleComplete = (exerciseIdx, setIdx) => {
       const justCompleted = !exercise.sets[setIdx].completed;
       if (justCompleted) {
         const duration = restDurations[exercise.name] || 30;
-        setFloatingRest({ duration });
+        const payload = {
+          duration,
+          startTime: Date.now(),
+          exerciseName: exercise.name,
+        };
+        setFloatingRest(payload);
+        localStorage.setItem('floatingRest', JSON.stringify(payload));
+        localStorage.setItem('rest-timer-alert', 'false');
+        setPendingRestTrigger(true); // this triggers startGlobalRestTimer()
       }
+      
 
       return { ...exercise, sets: updatedSets };
     });
@@ -382,9 +391,13 @@ return (
     {/* ⏱️ Floating rest timer if a set is completed */}
     {floatingRest && (
       <RestFloatingTimer
-        duration={floatingRest.duration}
-        onComplete={() => setFloatingRest(null)}
-      />
+      duration={floatingRest.duration}
+      onComplete={() => {
+        setFloatingRest(null);
+        localStorage.setItem('rest-timer-alert', 'true');
+      }}
+    />
+    
     )}
 
     {/* 🏁 No workout started — show main options */}

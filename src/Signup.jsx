@@ -1,13 +1,16 @@
-
+// Signup.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from './firebase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { auth, db } from './firebase';
 
 export default function Signup() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [handle, setHandle] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [showTerms, setShowTerms] = useState(false);
   const [agree, setAgree] = useState(false);
@@ -19,8 +22,32 @@ export default function Signup() {
       return;
     }
 
+    const cleanHandle = handle.replace('@', '').toLowerCase();
+    const handleRef = doc(db, 'handles', cleanHandle);
+    const handleSnap = await getDoc(handleRef);
+    if (handleSnap.exists()) {
+      setError('That handle is already taken.');
+      return;
+    }
+
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCred = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCred.user;
+
+      await setDoc(doc(db, 'users', user.uid), {
+        name,
+        handle: `@${cleanHandle}`,
+        uid: user.uid,
+        followers: [],
+        following: [],
+        profilePic: '/default-avatar.png'
+      });
+
+      await setDoc(doc(db, 'handles', cleanHandle.toLowerCase()), {
+        uid: user.uid
+      });
+      
+
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);
@@ -42,6 +69,22 @@ export default function Signup() {
         className="bg-gray-800 p-6 rounded shadow-md w-full max-w-sm space-y-4"
       >
         <h2 className="text-xl font-bold text-center">Create Account</h2>
+
+        <input
+          type="text"
+          placeholder="Display Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600"
+        />
+
+        <input
+          type="text"
+          placeholder="Handle (no @ needed)"
+          value={handle}
+          onChange={(e) => setHandle(e.target.value)}
+          className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600"
+        />
 
         <input
           type="email"
@@ -79,27 +122,26 @@ export default function Signup() {
           Sign Up
         </button>
       </form>
-    
-        {showTerms && (
-          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-            <div className="bg-white text-black p-6 rounded max-w-md max-h-[80vh] overflow-y-auto">
-              <h2 className="text-xl font-bold mb-4">Terms of Service</h2>
-              <p className="text-sm mb-4">
-                Thank you for choosing LVLD! By using LVLD, you agree to abide by our community standards. You must be at least 16 years old.
-                Do not impersonate others, post harmful or illegal content, or abuse the platform. Your data is
-                stored securely and is not sold to third parties. We may update our terms at any time, and continued
-                use of the platform implies your acceptance of those changes.
-              </p>
-              <button
-                onClick={() => setShowTerms(false)}
-                className="bg-purple-600 text-white px-4 py-2 rounded mt-2"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
 
+      {showTerms && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-white text-black p-6 rounded max-w-md max-h-[80vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">Terms of Service</h2>
+            <p className="text-sm mb-4">
+              Thank you for choosing LVLD! By using LVLD, you agree to abide by our community standards. You must be at least 16 years old.
+              Do not impersonate others, post harmful or illegal content, or abuse the platform. Your data is
+              stored securely and is not sold to third parties. We may update our terms at any time, and continued
+              use of the platform implies your acceptance of those changes.
+            </p>
+            <button
+              onClick={() => setShowTerms(false)}
+              className="bg-purple-600 text-white px-4 py-2 rounded mt-2"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

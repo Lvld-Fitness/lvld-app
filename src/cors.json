@@ -1,6 +1,6 @@
 [
     {
-      "origin": ["http://localhost:5173"],
+      "origin": ["http://localhost:5173","https://lvld.vercel.app"],
       "method": ["GET", "POST", "PUT", "DELETE"],
       "maxAgeSeconds": 3600
     }

@@ -45,6 +45,7 @@ export default function ProfileTab() {
   const fetchUserData = async (uid) => {
     const docRef = doc(db, 'users', uid);
     const docSnap = await getDoc(docRef);
+  
     if (docSnap.exists()) {
       const data = docSnap.data();
       setName(data.name || 'John Doe');
@@ -53,8 +54,18 @@ export default function ProfileTab() {
       setProfilePic(data.profilePic || '/default-avatar.png');
       setTotalWeight(data.totalWeight || 0);
       setTotalDistance(data.totalDistance || 0);
+
+          // ✅ Auto-register handle mapping if missing
+    const handleClean = (data.handle || '').replace('@', '').toLowerCase();
+    if (handleClean) {
+      const handleRef = doc(db, 'handles', handleClean);
+      const handleSnap = await getDoc(handleRef);
+      if (!handleSnap.exists()) {
+        await setDoc(handleRef, { uid });
+      }
     }
-  };
+  }
+};
 
   
         {/*} ⬇️ Add this useEffect under your others*/}
@@ -260,7 +271,17 @@ export default function ProfileTab() {
               </div>
               <div>
                 <label className="block text-sm mb-1">Username</label>
-                <input type="text" value={handle} onChange={(e) => { setHandle(e.target.value); saveUserData('handle', e.target.value); }} className="w-full px-2 py-1 rounded bg-gray-800 text-white" />
+                <input
+                  type="text"
+                  value={handle}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/^@/, ''); // remove any leading @
+                    const formatted = `@${raw}`;
+                    setHandle(formatted);
+                    saveUserData('handle', formatted);
+                  }}
+                  className="w-full px-2 py-1 rounded bg-gray-800 text-white"
+                />
               </div>
               <div>
                 <label className="block text-sm mb-1">Distance Units</label>
