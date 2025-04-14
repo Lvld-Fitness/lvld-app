@@ -26,28 +26,34 @@ export default function CreatePostModal({ onClose }) {
     let mediaUrl = '';
     let type = '';
 
-    if (media) {
-      const ext = media.name.split('.').pop();
-      const fileRef = ref(storage, `posts/${user.uid}_${Date.now()}.${ext}`);
-      await uploadBytes(fileRef, media);
-      mediaUrl = await getDownloadURL(fileRef);
-      type = media.type.startsWith('video') ? 'video' : 'image';
-    }
-
-    await addDoc(collection(db, 'posts'), {
-      userId: user.uid,
-      content,
-      mediaUrl,
-      mediaType: type,
-      timestamp: serverTimestamp(),
-      likes: [],
-      comments: []
-    });
-
-    setUploading(false);
-    onClose();
+    try {
+        if (media) {
+          const ext = media.name.split('.').pop();
+          const fileRef = ref(storage, `posts/${user.uid}_${Date.now()}.${ext}`);
+          await uploadBytes(fileRef, media);
+          mediaUrl = await getDownloadURL(fileRef);
+          type = media.type.startsWith('video') ? 'video' : 'image';
+        }
+      
+        await addDoc(collection(db, 'posts'), {
+          userId: user.uid,
+          content,
+          mediaUrl,
+          mediaType: type,
+          timestamp: serverTimestamp(),
+          likes: [],
+          comments: []
+        });
+      
+        setUploading(false);
+        onClose();
+      } catch (err) {
+        console.error('Post failed:', err);
+        alert('Something went wrong while posting. Try again.');
+        setUploading(false);
+      }
   };
-
+      
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center px-4">
       <div className="bg-gray-900 w-full max-w-md p-6 rounded shadow-xl text-white">
