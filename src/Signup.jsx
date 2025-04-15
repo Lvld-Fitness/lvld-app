@@ -17,42 +17,41 @@ export default function Signup() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
+    setError('');
+  
     if (!agree) {
       setError('You must agree to the terms to continue.');
       return;
     }
-
-    const cleanHandle = handle.replace('@', '').toLowerCase();
-    const handleRef = doc(db, 'handles', cleanHandle);
-    const handleSnap = await getDoc(handleRef);
-    if (handleSnap.exists()) {
-      setError('That handle is already taken.');
-      return;
-    }
-
+  
     try {
       const userCred = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCred.user;
-
-      await setDoc(doc(db, 'users', user.uid), {
-        name,
-        handle: `@${cleanHandle}`,
-        uid: user.uid,
+      const uid = userCred.user.uid;
+  
+      const handleClean = handleInput.trim().replace(/^@/, '').toLowerCase();
+  
+      // Save profile
+      await setDoc(doc(db, 'users', uid), {
+        name: nameInput.trim(),
+        handle: `@${handleClean}`,
+        bio: '',
+        profilePic: '/default-avatar.png',
+        totalWeight: 0,
+        totalDistance: 0,
         followers: [],
-        following: [],
-        profilePic: '/default-avatar.png'
+        following: []
       });
-
-      await setDoc(doc(db, 'handles', cleanHandle.toLowerCase()), {
-        uid: user.uid
-      });
-      
-
+  
+      // Save handle
+      await setDoc(doc(db, 'handles', handleClean), { uid });
+  
       navigate('/dashboard');
     } catch (err) {
-      setError(err.message);
+      console.error(err);
+      setError(err.message || 'Signup failed');
     }
   };
+  
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 relative">
@@ -80,7 +79,7 @@ export default function Signup() {
 
         <input
           type="text"
-          placeholder="Handle (no @ needed)"
+          placeholder="Handle (no spaces)"
           value={handle}
           onChange={(e) => setHandle(e.target.value)}
           className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600"
