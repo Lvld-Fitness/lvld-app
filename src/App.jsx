@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
-
 import Login from './Login';
 import Signup from './Signup';
 import ProfileTab from './ProfileTab';
@@ -33,7 +32,6 @@ export default function App() {
   if (loadingUser) return <div className="text-white bg-black p-4">Loading...</div>;
 
   return (
-    <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
@@ -111,6 +109,5 @@ export default function App() {
           ) : <Navigate to="/login" />
         } />
       </Routes>
-    </BrowserRouter>
   );
 }
