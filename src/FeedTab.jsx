@@ -1,14 +1,7 @@
-// FeedTab.jsx (fixed with Firebase)
+// FeedTab.jsx
 import { useEffect, useState } from 'react';
 import { db, auth } from './firebase';
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  doc,
-  getDoc
-} from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, getDoc, doc } from 'firebase/firestore';
 import CreatePostModal from './CreatePostModal';
 import PostCard from './PostCard';
 
@@ -48,12 +41,16 @@ export default function FeedTab() {
     e.preventDefault();
     const handle = searchHandle.trim().replace('@', '').toLowerCase();
     if (!handle) return;
-    const userSnap = await getDoc(doc(db, 'handles', handle));
-    if (userSnap.exists()) {
-      const { uid } = userSnap.data();
-      window.location.href = `/profile/${uid}`;
-    } else {
-      alert('User not found');
+    try {
+      const userSnap = await getDoc(doc(db, 'handles', handle));
+      if (userSnap.exists()) {
+        const { uid } = userSnap.data();
+        window.location.href = `/profile/${uid}`;
+      } else {
+        alert('User not found');
+      }
+    } catch (err) {
+      console.error('Search failed:', err);
     }
   };
 
@@ -76,11 +73,9 @@ export default function FeedTab() {
         + Create Post
       </button>
 
-      {posts.length > 0 ? (
-        posts.map(post => <PostCard key={post.id} post={post} />)
-      ) : (
-        <p className="text-center text-gray-500">No posts yet.</p>
-      )}
+      {posts.map(post => (
+        <PostCard key={post.id} post={post} />
+      ))}
 
       {showModal && <CreatePostModal onClose={() => setShowModal(false)} />}
     </div>
