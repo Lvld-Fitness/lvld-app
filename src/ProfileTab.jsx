@@ -251,7 +251,7 @@ const [showLastWorkoutWeight, setShowLastWorkoutWeight] = useState(false);
             </p>
             <p className="text-gray-400 text-xs mt-1">TOTAL WEIGHT LIFTED</p>
             {showLastWorkoutWeight && (
-              <p className="text-sm text-gray-300 mt-1">Last Workout: {lastWorkoutWeight.toLocaleString()} lbs</p>
+              <p className="text-sm text-gray-300 mt-2">Last Workout: {lastWorkoutWeight.toLocaleString()} lbs</p>
             )}
           </div>
           <div>

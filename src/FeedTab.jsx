@@ -1,7 +1,13 @@
-// FeedTab.jsx
 import { useEffect, useState } from 'react';
 import { db, auth } from './firebase';
-import { collection, query, where, orderBy, onSnapshot, getDoc, doc } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  getDoc,
+  doc
+} from 'firebase/firestore';
 import CreatePostModal from './CreatePostModal';
 import PostCard from './PostCard';
 
@@ -31,7 +37,7 @@ export default function FeedTab() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const loadedPosts = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(post => post.userId === auth.currentUser.uid || following.includes(post.userId));
+        .filter(post => post?.userId && (post.userId === auth.currentUser.uid || following.includes(post.userId)));
       setPosts(loadedPosts);
     });
     return () => unsubscribe();
@@ -49,7 +55,6 @@ export default function FeedTab() {
       alert('User not found');
     }
   };
-  
 
   return (
     <div className="bg-black text-white min-h-screen p-4 pb-24">
@@ -70,7 +75,15 @@ export default function FeedTab() {
         + Create Post
       </button>
 
-      {posts.map(post => <PostCard key={post.id} post={post} />)}
+      {posts.length === 0 ? (
+        <p className="text-gray-400 text-center">No posts to show.</p>
+      ) : (
+        posts.map((post) =>
+          post?.userId ? (
+            <PostCard key={post.id} post={post} />
+          ) : null
+        )
+      )}
 
       {showModal && <CreatePostModal onClose={() => setShowModal(false)} />}
     </div>

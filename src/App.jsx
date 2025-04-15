@@ -13,6 +13,7 @@ import AppLayout from './AppLayout';
 import FeedTab from './FeedTab';
 import WorkoutTab from './WorkoutTab';
 
+
 function TeamsTab() {
   return <div className="text-white p-4">Teams Tab Coming Soon</div>;
 }
@@ -67,6 +68,19 @@ export default function App() {
         </RestTimerProvider>
       ) : <Navigate to="/login" />} />
 
+      <Route path="/premade" element={
+        user ? (
+          <RestTimerProvider>
+            <GlobalRestTimerProvider>
+              <AppLayout>
+                <PremadeWorkoutPage />
+              </AppLayout>
+            </GlobalRestTimerProvider>
+          </RestTimerProvider>
+        ) : <Navigate to="/login" />
+      } />
+
+
       <Route path="/profile" element={user ? (
         <RestTimerProvider>
           <GlobalRestTimerProvider>
@@ -89,3 +103,4 @@ export default function App() {
     </Routes>
   );
 }
+
