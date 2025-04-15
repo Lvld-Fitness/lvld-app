@@ -27,33 +27,39 @@ export default function CreatePostModal({ onClose }) {
     let type = '';
 
     try {
-        if (media) {
-          const ext = media.name.split('.').pop();
-          const fileRef = ref(storage, `posts/${user.uid}_${Date.now()}.${ext}`);
-          await uploadBytes(fileRef, media);
-          mediaUrl = await getDownloadURL(fileRef);
-          type = media.type.startsWith('video') ? 'video' : 'image';
-        }
-      
-        await addDoc(collection(db, 'posts'), {
-          userId: user.uid,
-          content,
-          mediaUrl,
-          mediaType: type,
-          timestamp: serverTimestamp(),
-          likes: [],
-          comments: []
+      if (media) {
+        const ext = media.name.split('.').pop();
+        const fileRef = ref(storage, `posts/${user.uid}_${Date.now()}.${ext}`);
+    
+        await uploadBytes(fileRef, media, {
+          contentType: media.type,
+          customMetadata: {
+            uploadedBy: user.uid
+          }
         });
-      
-        setUploading(false);
-        onClose();
-        } catch (err) {
-            console.error('Post failed:', err.code || err.message, err);
-            alert(`Something went wrong while posting. Error: ${err.code || err.message}`);
-            setUploading(false);
-        }
-      
-  };
+    
+        mediaUrl = await getDownloadURL(fileRef);
+        type = media.type.startsWith('video') ? 'video' : 'image';
+      }
+    
+      await addDoc(collection(db, 'posts'), {
+        userId: user.uid,
+        content,
+        mediaUrl,
+        mediaType: type,
+        timestamp: serverTimestamp(),
+        likes: [],
+        comments: []
+      });
+    
+      setUploading(false);
+      onClose();
+    } catch (err) {
+      console.error('Post failed:', err.code || err.message, err);
+      alert(`Something went wrong while posting. Error: ${err.code || err.message}`);
+      setUploading(false);
+    }}
+  
       
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center px-4">
