@@ -1,3 +1,4 @@
+// FeedTab.jsx (fixed with Firebase)
 import { useEffect, useState } from 'react';
 import { db, auth } from './firebase';
 import {
@@ -5,8 +6,8 @@ import {
   query,
   orderBy,
   onSnapshot,
-  getDoc,
-  doc
+  doc,
+  getDoc
 } from 'firebase/firestore';
 import CreatePostModal from './CreatePostModal';
 import PostCard from './PostCard';
@@ -37,7 +38,7 @@ export default function FeedTab() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const loadedPosts = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(post => post?.userId && (post.userId === auth.currentUser.uid || following.includes(post.userId)));
+        .filter(post => post.userId === auth.currentUser.uid || following.includes(post.userId));
       setPosts(loadedPosts);
     });
     return () => unsubscribe();
@@ -75,14 +76,10 @@ export default function FeedTab() {
         + Create Post
       </button>
 
-      {posts.length === 0 ? (
-        <p className="text-gray-400 text-center">No posts to show.</p>
+      {posts.length > 0 ? (
+        posts.map(post => <PostCard key={post.id} post={post} />)
       ) : (
-        posts.map((post) =>
-          post?.userId ? (
-            <PostCard key={post.id} post={post} />
-          ) : null
-        )
+        <p className="text-center text-gray-500">No posts yet.</p>
       )}
 
       {showModal && <CreatePostModal onClose={() => setShowModal(false)} />}
