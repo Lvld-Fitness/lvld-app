@@ -26,13 +26,13 @@ export default function PostCard({ post }) {
       }
     };
     fetchUser();
+  }, [post.userId]);
+
   useEffect(() => {
     if (post.likes?.includes(currentUser?.uid)) {
       setLiked(true);
     }
   }, [post.likes, currentUser?.uid]);
-
-  }, [post.userId]);
 
   const handleReport = () => {
     const subject = encodeURIComponent('LVLD Post Report');
@@ -46,7 +46,6 @@ export default function PostCard({ post }) {
     }
   };
 
-  
   const handleLike = async () => {
     const postRef = doc(db, 'posts', post.id);
     if (!currentUser) return;
