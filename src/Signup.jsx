@@ -14,6 +14,9 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [showTerms, setShowTerms] = useState(false);
   const [agree, setAgree] = useState(false);
+  const [handleInput, setHandleInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
+
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -71,17 +74,17 @@ export default function Signup() {
 
         <input
           type="text"
-          placeholder="Display Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          placeholder="Name"
+          value={nameInput}
+          onChange={(e) => setNameInput(e.target.value)}
           className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600"
         />
 
         <input
           type="text"
-          placeholder="Handle (no spaces)"
-          value={handle}
-          onChange={(e) => setHandle(e.target.value)}
+          placeholder="Handle (e.g. lvld)"
+          value={handleInput}
+          onChange={(e) => setHandleInput(e.target.value)}
           className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600"
         />
 
