@@ -1,8 +1,9 @@
 // PostCard.jsx
 import { useEffect, useState } from 'react';
-import { doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { DotsThreeVertical } from 'phosphor-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function PostCard({ post }) {
   const [username, setUsername] = useState('User');
@@ -10,6 +11,9 @@ export default function PostCard({ post }) {
   const [showOptions, setShowOptions] = useState(false);
   const currentUser = auth.currentUser;
   const isOwner = currentUser?.uid === post.userId;
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(post.likes?.length || 0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -22,6 +26,12 @@ export default function PostCard({ post }) {
       }
     };
     fetchUser();
+  useEffect(() => {
+    if (post.likes?.includes(currentUser?.uid)) {
+      setLiked(true);
+    }
+  }, [post.likes, currentUser?.uid]);
+
   }, [post.userId]);
 
   const handleReport = () => {
@@ -36,11 +46,35 @@ export default function PostCard({ post }) {
     }
   };
 
+  
+  const handleLike = async () => {
+    const postRef = doc(db, 'posts', post.id);
+    if (!currentUser) return;
+    try {
+      if (liked) {
+        await updateDoc(postRef, { likes: arrayRemove(currentUser.uid) });
+        setLiked(false);
+        setLikeCount(likeCount - 1);
+      } else {
+        await updateDoc(postRef, { likes: arrayUnion(currentUser.uid) });
+        setLiked(true);
+        setLikeCount(likeCount + 1);
+      }
+    } catch (err) {
+      console.error('Failed to update like:', err);
+    }
+  };
+
   return (
     <div className="bg-gray-800 p-4 rounded mb-4 shadow relative">
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center gap-3">
-          <img src={profilePic} alt="avatar" className="w-10 h-10 rounded-full object-cover border border-gray-600" />
+          <img
+            src={profilePic}
+            onClick={() => navigate(`/profile/${post.userId}`)}
+            alt="avatar"
+            className="w-10 h-10 rounded-full object-cover border border-gray-600 cursor-pointer"
+          />
           <div className="text-lg font-extrabold text-white">{username}</div>
         </div>
         <button onClick={() => setShowOptions(!showOptions)} className="text-white">
@@ -83,6 +117,12 @@ export default function PostCard({ post }) {
       {post.mediaUrl && post.mediaType === 'video' && (
         <video src={post.mediaUrl} controls className="rounded w-full mb-2 max-h-96" />
       )}
+
+      <div className="flex items-center gap-4 text-sm text-gray-300 mt-2">
+        <button onClick={handleLike} className={`text-lg ${liked ? 'text-red-500' : 'text-white'}`}>
+          ❤️ {likeCount}
+        </button>
+      </div>
 
       <div className="text-xs text-gray-500">
         {post.timestamp?.toDate?.().toLocaleString() || 'Just now'}

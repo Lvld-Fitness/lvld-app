@@ -25,6 +25,8 @@ export default function ProfileTab() {
   const [weeklyStreak, setWeeklyStreak] = useState(0);
   const [totalWeight, setTotalWeight] = useState(0);
   const [totalDistance, setTotalDistance] = useState(0);
+const [lastWorkoutWeight, setLastWorkoutWeight] = useState(0);
+const [showLastWorkoutWeight, setShowLastWorkoutWeight] = useState(false);
   const [useKilometers, setUseKilometers] = useState(() => localStorage.getItem('distanceUnit') === 'km');
   const [useKilograms, setUseKilograms] = useState(() => localStorage.getItem('weightUnit') === 'kg');
 
@@ -54,6 +56,12 @@ export default function ProfileTab() {
       setProfilePic(data.profilePic || '/default-avatar.png');
       setTotalWeight(data.totalWeight || 0);
       setTotalDistance(data.totalDistance || 0);
+      const history = JSON.parse(localStorage.getItem('workoutHistory')) || [];
+      if (history.length > 0) {
+        const last = history[history.length - 1];
+        setLastWorkoutWeight(last.totalWeight || 0);
+      }
+
 
           // ✅ Auto-register handle mapping if missing
     const handleClean = (data.handle || '').replace('@', '').toLowerCase();
@@ -235,8 +243,16 @@ export default function ProfileTab() {
           </div>
 
           <div>
-            <p className="text-2xl font-extrabold">{displayWeight}</p>
+            <p
+              onClick={() => setShowLastWorkoutWeight(!showLastWorkoutWeight)}
+              className="text-2xl font-extrabold cursor-pointer"
+            >
+              {displayWeight}
+            </p>
             <p className="text-gray-400 text-xs mt-1">TOTAL WEIGHT LIFTED</p>
+            {showLastWorkoutWeight && (
+              <p className="text-sm text-gray-300 mt-1">Last Workout: {lastWorkoutWeight.toLocaleString()} lbs</p>
+            )}
           </div>
           <div>
             <p className="text-2xl font-extrabold text-red-500">{weeklyStreak}</p>
@@ -316,7 +332,29 @@ export default function ProfileTab() {
                 </button>
               </div>
 
-              <button onClick={handleLogout} className="w-full mt-4 bg-red-600 hover:bg-red-700 py-2 rounded font-bold">Log Out</button>
+              <button
+  onClick={async () => {
+    if (confirm('Are you sure you want to delete your account? This cannot be undone.')) {
+      const user = auth.currentUser;
+      const uid = user?.uid;
+      if (uid) {
+        try {
+          await deleteDoc(doc(db, 'users', uid));
+          await user.delete(); // Delete auth account
+          navigate('/signup');
+        } catch (err) {
+          console.error('Account deletion failed:', err);
+          alert('Failed to delete account. Please reauthenticate or try again.');
+        }
+      }
+    }
+  }}
+  className="w-full bg-red-800 hover:bg-red-900 py-2 rounded font-bold text-white"
+>
+  Delete Account
+</button>
+
+<button onClick={handleLogout} className="w-full mt-2 bg-red-600 hover:bg-red-700 py-2 rounded font-bold">Log Out</button>
             </div>
           </div>
         )}
