@@ -1,9 +1,19 @@
-// PostCard.jsx (Updated for Mobile Long Press)
 import { useEffect, useState, useRef } from 'react';
-import { doc, getDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  deleteDoc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove
+} from 'firebase/firestore';
 import { db, auth } from './firebase';
-import { DotsThreeVertical } from 'phosphor-react';
-import { ThumbsUp, ThumbsDown, Barbell } from '@phosphor-icons/react'; // ✅ updated icon source
+import {
+  DotsThreeVertical,
+  ThumbsUp,
+  ThumbsDown,
+  Barbell
+} from 'phosphor-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function PostCard({ post }) {
@@ -11,11 +21,11 @@ export default function PostCard({ post }) {
   const [profilePic, setProfilePic] = useState('/default-avatar.png');
   const [showOptions, setShowOptions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
-  const [reactionHeld, setReactionHeld] = useState(false);
+  const [lastTap, setLastTap] = useState(0);
+  const wrapperRef = useRef(null);
   const currentUser = auth.currentUser;
   const isOwner = currentUser?.uid === post.userId;
   const navigate = useNavigate();
-  const timeoutRef = useRef(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -30,9 +40,33 @@ export default function PostCard({ post }) {
     fetchUser();
   }, [post.userId]);
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(e.target) &&
+        !e.target.classList.contains('reaction-button')
+      ) {
+        setShowReactions(false);
+      }
+    };
+
+    if (showReactions) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showReactions]);
+
   const handleReport = () => {
     const subject = encodeURIComponent('LVLD Post Report');
-    const body = encodeURIComponent(`This post was reported:\n\nhttps://lvld.vercel.app/post/${post.id}`);
+    const body = encodeURIComponent(
+      `This post was reported:\n\nhttps://lvld.vercel.app/post/${post.id}`
+    );
     window.location.href = `mailto:lvldworkout@gmail.com?subject=${subject}&body=${body}`;
   };
 
@@ -53,26 +87,48 @@ export default function PostCard({ post }) {
         : arrayUnion(currentUser.uid);
 
       await updateDoc(postRef, {
-        [`reactions.${type}`]: updated,
+        [`reactions.${type}`]: updated
       });
     } catch (err) {
       console.error('Reaction failed:', err);
     }
-
-    setShowReactions(false);
   };
 
-  const handleTouchStart = () => {
-    timeoutRef.current = setTimeout(() => {
+  const handleTap = () => {
+    const now = Date.now();
+    if (now - lastTap < 300) {
       setShowReactions(true);
-      setReactionHeld(true);
-    }, 500);
+    } else {
+      handleReact('thumbsUp');
+    }
+    setLastTap(now);
   };
 
-  const handleTouchEnd = () => {
-    clearTimeout(timeoutRef.current);
-    if (!reactionHeld) handleReact('thumbsUp');
-    setReactionHeld(false);
+  const renderReactionIcon = (type, IconComponent, colorClass) => {
+    const hasReacted = post.reactions?.[type]?.includes(currentUser?.uid);
+    const count = post.reactions?.[type]?.length || 0;
+
+    if (!showReactions && count === 0 && type !== 'thumbsUp') return null;
+
+    return (
+      <div className="flex items-center gap-1">
+        <button
+          className="reaction-button"
+          onClick={() => {
+            handleReact(type);
+            setShowReactions(false);
+          }}
+        >
+          <IconComponent
+            size={24}
+            className={`${hasReacted ? colorClass : 'text-white'} hover:${colorClass}`}
+          />
+        </button>
+        {count > 0 && (
+          <span className="text-xs text-gray-400">{count}</span>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -87,7 +143,10 @@ export default function PostCard({ post }) {
           />
           <div className="text-lg font-extrabold text-white">{username}</div>
         </div>
-        <button onClick={() => setShowOptions(!showOptions)} className="text-white">
+        <button
+          onClick={() => setShowOptions(!showOptions)}
+          className="text-white"
+        >
           <DotsThreeVertical size={24} />
         </button>
       </div>
@@ -99,7 +158,10 @@ export default function PostCard({ post }) {
               <button className="block w-full text-left text-sm text-blue-400 hover:bg-gray-700 px-4 py-2">
                 ✏️ Edit
               </button>
-              <button onClick={handleDelete} className="block w-full text-left text-sm text-red-400 hover:bg-gray-700 px-4 py-2">
+              <button
+                onClick={handleDelete}
+                className="block w-full text-left text-sm text-red-400 hover:bg-gray-700 px-4 py-2"
+              >
                 🗑️ Delete
               </button>
             </>
@@ -111,7 +173,10 @@ export default function PostCard({ post }) {
             🚫 Hide
           </button>
           {!isOwner && (
-            <button onClick={handleReport} className="block w-full text-left text-sm text-red-400 hover:bg-gray-700 px-4 py-2">
+            <button
+              onClick={handleReport}
+              className="block w-full text-left text-sm text-red-400 hover:bg-gray-700 px-4 py-2"
+            >
               🚨 Report
             </button>
           )}
@@ -121,43 +186,34 @@ export default function PostCard({ post }) {
       <p className="text-white mb-2 whitespace-pre-line">{post.content}</p>
 
       {post.mediaUrl && post.mediaType === 'image' && (
-        <img src={post.mediaUrl} alt="post" className="rounded w-full max-h-96 object-cover mb-2" />
+        <img
+          src={post.mediaUrl}
+          alt="post"
+          className="rounded w-full max-h-96 object-cover mb-2"
+        />
       )}
 
       {post.mediaUrl && post.mediaType === 'video' && (
-        <video src={post.mediaUrl} controls className="rounded w-full mb-2 max-h-96" />
+        <video
+          src={post.mediaUrl}
+          controls
+          className="rounded w-full mb-2 max-h-96"
+        />
       )}
 
-      <div className="mt-2 relative w-fit">
+      <div className="flex items-center gap-4 text-sm text-gray-300 mt-2">
         <div
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          className="relative"
+          onClick={handleTap}
+          ref={wrapperRef}
+          className="flex gap-4 select-none touch-none"
         >
-          <ThumbsUp size={24} className="text-white" />
-          {showReactions && (
-            <div className="absolute top-[-55px] left-0 flex gap-3 bg-gray-900 p-2 rounded shadow-lg z-50">
-              <ThumbsUp
-                size={28}
-                onClick={() => handleReact('thumbsUp')}
-                className="text-white active:scale-110"
-              />
-              <ThumbsDown
-                size={28}
-                onClick={() => handleReact('thumbsDown')}
-                className="text-white active:scale-110"
-              />
-              <Barbell
-                size={28}
-                onClick={() => handleReact('barbell')}
-                className="text-white active:scale-110"
-              />
-            </div>
-          )}
+          {renderReactionIcon('thumbsUp', ThumbsUp, 'text-blue-500')}
+          {renderReactionIcon('thumbsDown', ThumbsDown, 'text-red-500')}
+          {renderReactionIcon('barbell', Barbell, 'text-yellow-500')}
         </div>
       </div>
 
-      <div className="text-xs text-gray-500 mt-2">
+      <div className="text-xs text-gray-500">
         {post.timestamp?.toDate?.().toLocaleString() || 'Just now'}
       </div>
     </div>
