@@ -1,61 +1,36 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { collection, getDocs, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
-import { auth, db } from './firebase';
-import StoryUploadModal from './StoryUploadModal';
-import { UploadSimple, Trash, Eye } from '@phosphor-icons/react';
+import { collection, getDocs, deleteDoc, doc, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db, storage } from './firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { UploadSimple, Trash, XSquare } from '@phosphor-icons/react';
 
 export default function StoryViewer() {
   const { userId } = useParams();
   const [entries, setEntries] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [showUpload, setShowUpload] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
   const navigate = useNavigate();
   const isOwner = auth.currentUser?.uid === userId;
 
+  const loadStories = async () => {
+    const q = query(collection(db, 'stories', userId, 'entries'), orderBy('timestamp', 'asc'));
+    const snap = await getDocs(q);
+    const now = Date.now();
+    const cutoff = now - 24 * 60 * 60 * 1000;
+
+    const validEntries = snap.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(entry => entry.timestamp?.toMillis?.() >= cutoff);
+
+    setEntries(validEntries);
+    setActiveIndex(0);
+  };
+
   useEffect(() => {
-    const loadStories = async () => {
-      const q = query(
-        collection(db, 'stories', userId, 'entries'),
-        orderBy('timestamp', 'asc')
-      );
-      const snap = await getDocs(q);
-      const now = Date.now();
-      const cutoff = now - 24 * 60 * 60 * 1000;
-
-      const validEntries = snap.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(entry => entry.timestamp?.toMillis?.() >= cutoff);
-
-      setEntries(validEntries);
-    };
-
     loadStories();
   }, [userId]);
-
-  useEffect(() => {
-    if (!showUpload) {
-      const refresh = async () => {
-        const q = query(
-          collection(db, 'stories', userId, 'entries'),
-          orderBy('timestamp', 'asc')
-        );
-        const snap = await getDocs(q);
-        const now = Date.now();
-        const cutoff = now - 24 * 60 * 60 * 1000;
-  
-        const validEntries = snap.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter(entry => entry.timestamp?.toMillis?.() >= cutoff);
-  
-        setEntries(validEntries);
-        setActiveIndex(0);
-      };
-  
-      refresh();
-    }
-  }, [showUpload, userId]);
-  
 
   useEffect(() => {
     if (entries.length === 0) return;
@@ -75,7 +50,43 @@ export default function StoryViewer() {
     if (!confirm('Delete this story?')) return;
 
     await deleteDoc(doc(db, 'stories', userId, 'entries', entry.id));
-    navigate('/');
+    await loadStories();
+  };
+
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileSelected = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !auth.currentUser) return;
+
+    setUploading(true);
+
+    try {
+      const ext = file.name.split('.').pop();
+      const fileRef = ref(storage, `stories/${auth.currentUser.uid}_${Date.now()}.${ext}`);
+      await uploadBytes(fileRef, file, { contentType: file.type });
+
+      const url = await getDownloadURL(fileRef);
+      const type = file.type.startsWith('video') ? 'video' : 'image';
+
+      await addDoc(collection(db, 'stories', auth.currentUser.uid, 'entries'), {
+        mediaUrl: url,
+        mediaType: type,
+        timestamp: serverTimestamp()
+      });
+
+      await new Promise(res => setTimeout(res, 500));
+      await loadStories();
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Failed to upload story.');
+    }
+
+    setUploading(false);
   };
 
   const handleStopClick = (e) => {
@@ -87,16 +98,15 @@ export default function StoryViewer() {
       onClick={() => navigate('/')}
       className="fixed inset-0 bg-black z-50 flex items-center justify-center p-4"
     >
-      {isOwner && entries.length > 0 && (
-        <div className="absolute top-4 right-4 z-50 flex gap-3">
-          <button onClick={(e) => { e.stopPropagation(); setShowUpload(true); }}>
-            <UploadSimple size={24} className="text-white" />
-          </button>
-          <button onClick={(e) => { e.stopPropagation(); handleDelete(); }}>
-            <Trash size={24} className="text-red-500" />
-          </button>
-        </div>
-      )}
+
+
+      <input
+        type="file"
+        accept="image/*,video/*"
+        onChange={handleFileSelected}
+        ref={fileInputRef}
+        className="hidden"
+      />
 
       {entries.length > 0 ? (
         <div className="max-w-full max-h-full rounded overflow-hidden shadow-lg" onClick={handleStopClick}>
@@ -117,29 +127,15 @@ export default function StoryViewer() {
         </div>
       ) : isOwner ? (
         <div className="flex flex-col items-center gap-20" onClick={handleStopClick}>
-            <button
-                onClick={() => setShowUpload(true)}
-                className="text-white opacity-80 hover:opacity-100"
-            >
-                <UploadSimple size={64} />
-            </button>
-            
-            <button
-                onClick={() => navigate(`/story/${userId}`)}
-                className="text-white opacity-80 hover:opacity-100"
-            >
-                <Eye size={64} />
-            </button>
-            </div>
-
+          <button onClick={handleUploadClick} className="text-white opacity-80 hover:opacity-100">
+            <UploadSimple size={64} />
+          </button>
+          <button onClick={() => navigate('/feed')}>
+            <XSquare size={64} />
+          </button>
+          
+        </div>
       ) : null}
-
-      {showUpload && (
-        <StoryUploadModal
-          onClose={() => setShowUpload(false)}
-          userData={{ uid: userId }}
-        />
-      )}
     </div>
   );
 }

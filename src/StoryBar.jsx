@@ -10,6 +10,9 @@ export default function StoryBar() {
   const [stories, setStories] = useState([]);
   const navigate = useNavigate();
 
+  console.log("Current User:", auth.currentUser);
+
+
   useEffect(() => {
     const fetchUser = async () => {
       const currentUser = auth.currentUser;
