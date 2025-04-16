@@ -44,7 +44,7 @@ export default function StoryUploadModal({ onClose, userData }) {
       await new Promise((res) => setTimeout(res, 500));
   
       setUploading(false);
-      onClose();
+    window.location.href = `/story/${userData.uid}`;
     } catch (err) {
       console.error('Story upload failed:', err);
       alert('Upload failed');
