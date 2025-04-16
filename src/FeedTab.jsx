@@ -4,6 +4,8 @@ import { db, auth } from './firebase';
 import { collection, query, where, orderBy, onSnapshot, getDoc, doc } from 'firebase/firestore';
 import CreatePostModal from './CreatePostModal';
 import PostCard from './PostCard';
+import StoryBar from './StoryBar';
+
 
 export default function FeedTab() {
   const [posts, setPosts] = useState([]);
@@ -56,6 +58,8 @@ export default function FeedTab() {
 
   return (
     <div className="bg-black text-white min-h-screen p-4 pb-24">
+      <StoryBar /> {/* ✅ Story bar at the top */}
+  
       <form onSubmit={handleSearch} className="mb-4">
         <input
           type="text"
@@ -65,19 +69,19 @@ export default function FeedTab() {
           className="w-full p-2 rounded bg-gray-800 text-white"
         />
       </form>
-
+  
       <button
         onClick={() => setShowModal(true)}
         className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded text-lg font-bold mb-4"
       >
         + Create Post
       </button>
-
+  
       {posts.map(post => (
         <PostCard key={post.id} post={post} />
       ))}
-
+  
       {showModal && <CreatePostModal onClose={() => setShowModal(false)} />}
     </div>
   );
-}
+}  

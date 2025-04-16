@@ -12,6 +12,9 @@ import PremadeWorkoutPage from './PremadeWorkoutPage';
 import AppLayout from './AppLayout';
 import { RestTimerProvider } from './RestTimerContext';
 import { GlobalRestTimerProvider } from './GlobalRestTimerContext';
+import StoryViewer from './StoryViewer';
+
+
 
 function TeamsTab() {
   return <div className="text-white p-4">Teams Tab Coming Soon</div>;
@@ -108,6 +111,13 @@ export default function App() {
             </RestTimerProvider>
           ) : <Navigate to="/login" />
         } />
+
+        <Route path="/story/:userId" element={<StoryViewer />} />
+
+
+
       </Routes>
+
+
   );
 }

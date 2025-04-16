@@ -1,19 +1,21 @@
-// PostCard.jsx
-import { useEffect, useState } from 'react';
+// PostCard.jsx (Updated for Mobile Long Press)
+import { useEffect, useState, useRef } from 'react';
 import { doc, getDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { DotsThreeVertical } from 'phosphor-react';
+import { ThumbsUp, ThumbsDown, Barbell } from '@phosphor-icons/react'; // ✅ updated icon source
 import { useNavigate } from 'react-router-dom';
 
 export default function PostCard({ post }) {
   const [username, setUsername] = useState('User');
   const [profilePic, setProfilePic] = useState('/default-avatar.png');
   const [showOptions, setShowOptions] = useState(false);
+  const [showReactions, setShowReactions] = useState(false);
+  const [reactionHeld, setReactionHeld] = useState(false);
   const currentUser = auth.currentUser;
   const isOwner = currentUser?.uid === post.userId;
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likes?.length || 0);
   const navigate = useNavigate();
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -28,12 +30,6 @@ export default function PostCard({ post }) {
     fetchUser();
   }, [post.userId]);
 
-  useEffect(() => {
-    if (post.likes?.includes(currentUser?.uid)) {
-      setLiked(true);
-    }
-  }, [post.likes, currentUser?.uid]);
-
   const handleReport = () => {
     const subject = encodeURIComponent('LVLD Post Report');
     const body = encodeURIComponent(`This post was reported:\n\nhttps://lvld.vercel.app/post/${post.id}`);
@@ -46,22 +42,37 @@ export default function PostCard({ post }) {
     }
   };
 
-  const handleLike = async () => {
-    const postRef = doc(db, 'posts', post.id);
+  const handleReact = async (type) => {
     if (!currentUser) return;
+    const postRef = doc(db, 'posts', post.id);
+    const current = post.reactions?.[type] || [];
+
     try {
-      if (liked) {
-        await updateDoc(postRef, { likes: arrayRemove(currentUser.uid) });
-        setLiked(false);
-        setLikeCount(likeCount - 1);
-      } else {
-        await updateDoc(postRef, { likes: arrayUnion(currentUser.uid) });
-        setLiked(true);
-        setLikeCount(likeCount + 1);
-      }
+      const updated = current.includes(currentUser.uid)
+        ? arrayRemove(currentUser.uid)
+        : arrayUnion(currentUser.uid);
+
+      await updateDoc(postRef, {
+        [`reactions.${type}`]: updated,
+      });
     } catch (err) {
-      console.error('Failed to update like:', err);
+      console.error('Reaction failed:', err);
     }
+
+    setShowReactions(false);
+  };
+
+  const handleTouchStart = () => {
+    timeoutRef.current = setTimeout(() => {
+      setShowReactions(true);
+      setReactionHeld(true);
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    clearTimeout(timeoutRef.current);
+    if (!reactionHeld) handleReact('thumbsUp');
+    setReactionHeld(false);
   };
 
   return (
@@ -117,13 +128,36 @@ export default function PostCard({ post }) {
         <video src={post.mediaUrl} controls className="rounded w-full mb-2 max-h-96" />
       )}
 
-      <div className="flex items-center gap-4 text-sm text-gray-300 mt-2">
-        <button onClick={handleLike} className={`text-lg ${liked ? 'text-red-500' : 'text-white'}`}>
-          ❤️ {likeCount}
-        </button>
+      <div className="mt-2 relative w-fit">
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          className="relative"
+        >
+          <ThumbsUp size={24} className="text-white" />
+          {showReactions && (
+            <div className="absolute top-[-55px] left-0 flex gap-3 bg-gray-900 p-2 rounded shadow-lg z-50">
+              <ThumbsUp
+                size={28}
+                onClick={() => handleReact('thumbsUp')}
+                className="text-white active:scale-110"
+              />
+              <ThumbsDown
+                size={28}
+                onClick={() => handleReact('thumbsDown')}
+                className="text-white active:scale-110"
+              />
+              <Barbell
+                size={28}
+                onClick={() => handleReact('barbell')}
+                className="text-white active:scale-110"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="text-xs text-gray-500">
+      <div className="text-xs text-gray-500 mt-2">
         {post.timestamp?.toDate?.().toLocaleString() || 'Just now'}
       </div>
     </div>
