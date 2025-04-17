@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { collection, getDocs, deleteDoc, doc, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, getDoc, deleteDoc, doc, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from './firebase';
 import { UploadSimple, Trash, XSquare } from '@phosphor-icons/react';
@@ -12,6 +12,7 @@ export default function StoryViewer() {
   const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
   const isOwner = auth.currentUser?.uid === userId;
+  const [posterInfo, setPosterInfo] = useState({ name: '', profilePic: '' });
 
   useEffect(() => {
     const loadStories = async () => {
@@ -29,6 +30,26 @@ export default function StoryViewer() {
 
     loadStories();
   }, [userId]);
+
+  useEffect(() => {
+    const fetchPoster = async () => {
+      const ref = doc(db, 'users', userId);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const data = snap.data();
+        console.log('👤 Poster data loaded:', data); // ✅ debug check
+        setPosterInfo({
+          name: data.name || 'User',
+          profilePic: data.profilePic || '/default-avatar.png'
+        });
+      } else {
+        console.log('❌ No user found for:', userId);
+      }
+    };
+  
+    fetchPoster();
+  }, [userId]);
+  
 
   const handleDelete = async () => {
     const entry = entries[activeIndex];
@@ -85,12 +106,24 @@ export default function StoryViewer() {
       }
     }
   };
-
   return (
     <div
       onClick={() => navigate('/feed')}
       className="fixed inset-0 bg-black z-50 flex items-center justify-center p-4"
     >
+      {/* Poster Info Top-Left */}
+      {posterInfo.name && (
+        <div className="absolute top-4 left-4 z-50 flex items-center gap-2 bg-black bg-opacity-60 px-3 py-1 rounded-full">
+          <img
+            src={posterInfo.profilePic}
+            alt="avatar"
+            className="w-8 h-8 rounded-full object-cover border border-gray-600"
+          />
+          <span className="text-white font-semibold text-sm">{posterInfo.name}</span>
+        </div>
+      )}
+  
+      {/* Upload/Delete/Close Buttons Top-Right */}
       <div className="absolute top-4 right-4 z-50 flex gap-3" onClick={(e) => e.stopPropagation()}>
         {isOwner && (
           <>
@@ -112,7 +145,8 @@ export default function StoryViewer() {
           <XSquare size={24} className="text-white" />
         </button>
       </div>
-
+  
+      {/* Story Content */}
       {uploading ? (
         <div className="text-white text-lg">Uploading...</div>
       ) : entries.length > 0 ? (
@@ -138,4 +172,4 @@ export default function StoryViewer() {
       ) : null}
     </div>
   );
-}
+}  

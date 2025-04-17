@@ -33,6 +33,8 @@ export default function Signup() {
   
       const handleClean = handleInput.trim().replace(/^@/, '').toLowerCase();
   
+      const LVLD_UID = 'dKdmdsLKsTY51nFmqHjBWepZgDp2'; // 🔁 Replace with actual LVLD account UID
+  
       // Save profile
       await setDoc(doc(db, 'users', uid), {
         name: nameInput.trim(),
@@ -42,7 +44,7 @@ export default function Signup() {
         totalWeight: 0,
         totalDistance: 0,
         followers: [],
-        following: []
+        following: [LVLD_UID] // ✅ Auto-follow LVLD
       });
   
       // Save handle
@@ -54,6 +56,7 @@ export default function Signup() {
       setError(err.message || 'Signup failed');
     }
   };
+  
   
 
   return (
