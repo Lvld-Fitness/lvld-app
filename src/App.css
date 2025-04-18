@@ -40,3 +40,11 @@
 .read-the-docs {
   color: #888;
 }
+
+/* ✅ Prevent iOS zoom-in on input focus */
+input,
+textarea,
+button,
+select {
+  font-size: 16px !important;
+}
