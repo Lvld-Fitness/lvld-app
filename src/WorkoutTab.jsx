@@ -702,6 +702,12 @@ ${workout.exercises.map(ex =>
     <input
       type="number"
       placeholder="lbs"
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          const next = e.target.parentElement.querySelector('input[placeholder="reps"]');
+          if (next) next.focus();
+        }
+      }}
       value={set.weight}
       onChange={(e) =>
         updateSetValue(exerciseIdx, setIdx, 'weight', e.target.value)
@@ -711,6 +717,15 @@ ${workout.exercises.map(ex =>
     <input
       type="number"
       placeholder="reps"
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          const allInputs = Array.from(document.querySelectorAll('input[placeholder="lbs"], input[placeholder="reps"]'));
+          const idx = allInputs.indexOf(e.target);
+          if (idx >= 0 && idx + 1 < allInputs.length) {
+            allInputs[idx + 1].focus();
+          }
+        }
+      }}
       value={set.reps}
       onChange={(e) =>
         updateSetValue(exerciseIdx, setIdx, 'reps', e.target.value)
