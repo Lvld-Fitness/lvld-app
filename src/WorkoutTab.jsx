@@ -67,7 +67,7 @@ export default function WorkoutTab() {
   const [pendingRestTrigger, setPendingRestTrigger] = useState(false);
   const [showWorkoutSummary, setShowWorkoutSummary] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+
 
 
   // 🔁 Context Functions
@@ -393,27 +393,26 @@ const finishWorkout = async () => {
     await updateDoc(userRef, { workoutHistory: updatedHistory });
   }
 
-  // Get a fun fact from ChatGPT API
   try {
     const contextPrompt = topCardio.distance > 0
       ? `Tell me a fun, gaming themed, movie themed, or silly fact about running ${topCardio.distance} miles.`
       : `Tell me a fun, gaming themed, movie themed, or silly fact about lifting ${totalWeight} pounds.`;
-
-    const funFactRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: contextPrompt }],
-        max_tokens: 60
-      })
-    });
-
+  
+    const funFactRes = await fetch(
+      import.meta.env.DEV
+        ? 'http://localhost:3000/api/getFunFact'
+        : '/api/getFunFact',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: contextPrompt })
+      }
+    );
+  
     const json = await funFactRes.json();
-    const fact = json.choices?.[0]?.message?.content || '';
+    const fact = json.fact || '';
+  
+  
     setSummaryData({
       name: completedWorkout.name,
       date: new Date().toLocaleDateString(),
@@ -430,9 +429,10 @@ const finishWorkout = async () => {
       totalWeight,
       topSets,
       topCardio,
-      funFact: 'No fact this time! Check your connection.'
+      funFact: 'No fact this time!'
     });
   }
+  
 
   setShowWorkoutSummary(true);
 
