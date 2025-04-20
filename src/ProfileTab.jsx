@@ -256,7 +256,7 @@ const [showLastWorkoutWeight, setShowLastWorkoutWeight] = useState(false);
           </div>
           <div>
             <p className="text-2xl font-extrabold text-red-500">{weeklyStreak}</p>
-            <p className="text-gray-400 text-xs mt-1">WEEKLY STREAK</p>
+            <p className="text-gray-400 text-xs mt-1">WORKOUT STREAK</p>
           </div>
           <div>
             <p className="text-2xl font-extrabold text-white">Level {level}</p>

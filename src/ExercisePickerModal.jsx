@@ -10,6 +10,7 @@ export default function ExercisePickerModal({
   const [exerciseList, setExerciseList] = useState([]);
   const [showNewExerciseModal, setShowNewExerciseModal] = useState(false);
   const [highlighted, setHighlighted] = useState([]); // Track selected/highlighted ones
+  const lastSets = JSON.parse(localStorage.getItem('lastUsedSets') || '{}');
 
   useEffect(() => {
     const saved = localStorage.getItem('savedExercises');
@@ -18,6 +19,23 @@ export default function ExercisePickerModal({
     setExerciseList(merged);
     localStorage.setItem('savedExercises', JSON.stringify(merged));
   }, []);
+
+  const newExercises = highlighted.map((name) => ({
+    name,
+    sets: lastSets[name]?.length
+      ? lastSets[name].map((set, i) => ({
+          id: i + 1,
+          weight: set.weight,
+          reps: set.reps,
+          completed: false,
+          tag: '',
+        }))
+      : [
+          { id: 1, weight: '', reps: '', completed: false },
+          { id: 2, weight: '', reps: '', completed: false },
+          { id: 3, weight: '', reps: '', completed: false },
+        ],
+  }));
 
   const filteredExercises = exerciseList.filter((name) =>
     name.toLowerCase().includes(search.toLowerCase())

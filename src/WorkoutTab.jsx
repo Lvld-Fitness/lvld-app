@@ -9,6 +9,8 @@ import NoteModal from './NoteModal';
 import RestTimerModal from './RestTimerModal';
 import RestFloatingTimer from './RestFloatingTimer';
 import GymScanModal from './GymScanModal_LocalV9';
+import WorkoutSummaryPopup from './WorkoutSummaryPopup';
+
 
 // 📋 Default Exercise List
 import defaultExercises from './exerciseList';
@@ -42,6 +44,9 @@ export default function WorkoutTab() {
     const saved = localStorage.getItem('exerciseRestDurations');
     return saved ? JSON.parse(saved) : {};
 
+    
+    
+
 
     
   });
@@ -60,6 +65,10 @@ export default function WorkoutTab() {
   const [showRestPopup, setShowRestPopup] = useState(false);
   const [replaceIdx, setReplaceIdx] = useState(null);
   const [pendingRestTrigger, setPendingRestTrigger] = useState(false);
+  const [showWorkoutSummary, setShowWorkoutSummary] = useState(false);
+  const [summaryData, setSummaryData] = useState(null);
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+
 
   // 🔁 Context Functions
   const { startRestTimer } = useRestTimer();
@@ -154,9 +163,12 @@ useEffect(() => {
   const active = localStorage.getItem('activeWorkout');
   const start = localStorage.getItem('workoutStartTime');
   const history = localStorage.getItem('workoutHistory');
+  const savedName = localStorage.getItem('currentWorkoutName');
+
   if (active) setSelectedExercises(JSON.parse(active));
   if (start) setWorkoutStartTime(Number(start));
   if (history) setWorkoutHistory(JSON.parse(history));
+  if (savedName) setWorkoutName(savedName); // 👈 this is the one you're adding
 }, []);
 
 // 🕐 Timer tracking during an active workout
@@ -220,7 +232,8 @@ const staticCardio = [
   'Cycling', 'Elliptical', 'Farmer Carry (Dumbbell)', 'Farmer Carry (Kettlebell)', 'High Knees',
   'Indoor Running', 'Jumping Jacks', 'Outdoor Running', 'Rowing Machine', 'Rowing Sprint', 'Shadow Boxing',
   'Sled Pull', 'Sled Push', 'Stairmaster', 'Treadmill Run', 'Treadmill Sprint', 'Treadmill Walk',
-  'Walking Lunge (Barbell)', 'Walking Lunge (Dumbbell)', 'Wall Ball (Medicine Ball)', 'VR Gaming'
+  'Walking Lunge (Barbell)', 'Walking Lunge (Dumbbell)', 'Wall Ball (Medicine Ball)', 'VR Gaming', 'Skateboarding',
+  'Long Boarding'
 ];
 
 // Define exerciseList First
@@ -327,18 +340,49 @@ const cancelWorkout = () => {
   setElapsedTime(0);
   localStorage.removeItem('activeWorkout');
   localStorage.removeItem('workoutStartTime');
+  localStorage.removeItem('currentWorkoutName');
+
 };
 
-// ✅ Finalizes and saves the workout (locally and to Firebase), clears state
+// Finished the workout session and Stores information + Workout Summary Highlights and Ai fact
 const finishWorkout = async () => {
+  const totalWeight = calculateTotalWeight(selectedExercises);
+
+  const cardioSets = selectedExercises
+    .filter(e => cardioExercises.includes(e.name))
+    .flatMap(e => e.sets || []);
+
+  const topCardio = cardioSets.reduce((best, set) => {
+    const distance = parseFloat(set.distance || 0);
+    const time = parseFloat(set.time || 0);
+    const speed = time > 0 ? distance / time : 0;
+    return (speed > best.speed) ? { distance, time, speed } : best;
+  }, { distance: 0, time: 0, speed: 0 });
+
+  const allSets = selectedExercises.flatMap(e => e.sets || []);
+  const topSets = [...allSets]
+    .filter(set => parseFloat(set.weight) > 0 && parseInt(set.reps) > 0)
+    .sort((a, b) => (parseFloat(b.weight) * parseInt(b.reps)) - (parseFloat(a.weight) * parseInt(a.reps)))
+    .slice(0, 3);
+
   const completedWorkout = {
     name: workoutName || `Workout - ${new Date().toLocaleDateString()}`,
     timestamp: Date.now(),
     duration: elapsedTime,
     exercises: selectedExercises,
-    totalWeight: calculateTotalWeight(selectedExercises),
+    totalWeight,
   };
 
+  // Save last used sets to localStorage
+  const lastSets = JSON.parse(localStorage.getItem('lastUsedSets') || '{}');
+  selectedExercises.forEach(ex => {
+    if (ex.sets?.length > 0) {
+      lastSets[ex.name] = ex.sets;
+    }
+  });
+  localStorage.setItem('lastUsedSets', JSON.stringify(lastSets));
+
+  // Save workout to history
   const updatedHistory = [...workoutHistory, completedWorkout];
   setWorkoutHistory(updatedHistory);
   localStorage.setItem('workoutHistory', JSON.stringify(updatedHistory));
@@ -346,17 +390,64 @@ const finishWorkout = async () => {
   const user = auth.currentUser;
   if (user) {
     const userRef = doc(db, 'users', user.uid);
-    await updateDoc(userRef, {
-      workoutHistory: updatedHistory
+    await updateDoc(userRef, { workoutHistory: updatedHistory });
+  }
+
+  // Get a fun fact from ChatGPT API
+  try {
+    const contextPrompt = topCardio.distance > 0
+      ? `Tell me a fun, gaming themed, movie themed, or silly fact about running ${topCardio.distance} miles.`
+      : `Tell me a fun, gaming themed, movie themed, or silly fact about lifting ${totalWeight} pounds.`;
+
+    const funFactRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: contextPrompt }],
+        max_tokens: 60
+      })
+    });
+
+    const json = await funFactRes.json();
+    const fact = json.choices?.[0]?.message?.content || '';
+    setSummaryData({
+      name: completedWorkout.name,
+      date: new Date().toLocaleDateString(),
+      totalWeight,
+      topSets,
+      topCardio,
+      funFact: fact
+    });
+  } catch (err) {
+    console.error('Fun fact fetch failed', err);
+    setSummaryData({
+      name: completedWorkout.name,
+      date: new Date().toLocaleDateString(),
+      totalWeight,
+      topSets,
+      topCardio,
+      funFact: 'No fact this time! Check your connection.'
     });
   }
 
+  setShowWorkoutSummary(true);
+
+  // Reset state
   setSelectedExercises([]);
   setWorkoutName('');
   setWorkoutStartTime(null);
   localStorage.removeItem('activeWorkout');
   localStorage.removeItem('workoutStartTime');
+  localStorage.removeItem('currentWorkoutName');
+
 };
+
+
+
 
 // ❌ Deletes a workout from local state and Firebase by index
 const handleDeleteWorkout = async (indexToDelete) => {
@@ -424,7 +515,7 @@ return (
           onClick={() => setShowPastWorkouts(true)}
           className="w-full bg-red-500 hover:bg-red-700 py-3 rounded text-lg font-bold mb-4"
         >
-          See Past Workouts
+          Past Workouts
         </button>
 
         {/* 🔘 Open exercise list editor */}
@@ -565,7 +656,10 @@ ${workout.exercises.map(ex =>
       type="text"
       placeholder="Workout Name (optional)"
       value={workoutName}
-      onChange={(e) => setWorkoutName(e.target.value)}
+      onChange={(e) => {
+        setWorkoutName(e.target.value);
+        localStorage.setItem('currentWorkoutName', e.target.value);
+      }}      
       className="w-full p-2 mb-4 rounded bg-gray-700 text-white"
     />
 
@@ -699,39 +793,35 @@ ${workout.exercises.map(ex =>
 ) : (
   // 🏋️ If strength training, show Weight + Reps inputs
   <>
-    <input
-      type="number"
-      placeholder="lbs"
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          const next = e.target.parentElement.querySelector('input[placeholder="reps"]');
-          if (next) next.focus();
-        }
-      }}
-      value={set.weight}
-      onChange={(e) =>
-        updateSetValue(exerciseIdx, setIdx, 'weight', e.target.value)
-      }
-      className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
-    />
-    <input
-      type="number"
-      placeholder="reps"
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          const allInputs = Array.from(document.querySelectorAll('input[placeholder="lbs"], input[placeholder="reps"]'));
-          const idx = allInputs.indexOf(e.target);
-          if (idx >= 0 && idx + 1 < allInputs.length) {
-            allInputs[idx + 1].focus();
-          }
-        }
-      }}
-      value={set.reps}
-      onChange={(e) =>
-        updateSetValue(exerciseIdx, setIdx, 'reps', e.target.value)
-      }
-      className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
-    />
+    {/* LBS input with last used as placeholder */}
+<input
+  type="number"
+  placeholder={
+    (() => {
+      const last = JSON.parse(localStorage.getItem('lastUsedSets') || '{}')[exercise.name]?.[setIdx];
+      return last?.weight ? ` ${last.weight} lbs` : 'lbs';
+    })()
+  }
+  value={set.weight}
+  onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'weight', e.target.value)}
+  className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
+/>
+
+{/* REPS input with last used as placeholder */}
+<input
+  type="number"
+  placeholder={
+    (() => {
+      const last = JSON.parse(localStorage.getItem('lastUsedSets') || '{}')[exercise.name]?.[setIdx];
+      return last?.reps ? ` ${last.reps} reps` : 'reps';
+    })()
+  }
+  value={set.reps}
+  onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'reps', e.target.value)}
+  className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
+/>
+
+
   </>
 )}
 
@@ -775,7 +865,11 @@ ${workout.exercises.map(ex =>
 
 {/* ✅ Finish workout button */}
 <button
-  onClick={finishWorkout}
+  onClick={() => {
+    if (window.confirm('Are you sure you want to finish and save this workout?')) {
+      finishWorkout();
+    }
+  }}  
   className="w-full bg-green-600 hover:bg-green-700 py-3 rounded text-lg font-bold mb-2 focus:outline-none"
 >
   Finish Workout
@@ -783,7 +877,11 @@ ${workout.exercises.map(ex =>
 
 {/* ❌ Cancel workout button */}
 <button
-  onClick={cancelWorkout}
+  onClick={() => {
+    if (window.confirm('Are you sure you want to cancel this workout? All progress will be lost.')) {
+      cancelWorkout();
+    }
+  }}  
   className="w-full bg-red-700 hover:bg-red-800 py-2 rounded"
 >
   Cancel Workout
@@ -847,10 +945,18 @@ ${workout.exercises.map(ex =>
 
  {/* 🔔 Floating rest timer notification (pops up when rest ends) */}
 {showRestPopup && (
-  <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded shadow-lg z-[9999] text-center">
+  <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded shadow-lg z-[9999] text-center">
     ⏱ Time for your next set!
   </div>
 )}
+
+{showWorkoutSummary && (
+  <WorkoutSummaryPopup
+    summaryData={summaryData}
+    onClose={() => setShowWorkoutSummary(false)}
+  />
+)}
+
 
     </div>
   );
