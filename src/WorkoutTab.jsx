@@ -365,7 +365,7 @@ const calculateDistanceByType = (exercises) => {
   };
 
   exercises.forEach(ex => {
-    if (cardioExercises.includes(ex.name) && ex.sets) {
+    if (ex.sets) {
       ex.sets.forEach(set => {
         const dist = parseFloat(set.distance) || 0;
 
