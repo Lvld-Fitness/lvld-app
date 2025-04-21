@@ -25,13 +25,38 @@ export default function ProfileTab() {
   const [weeklyStreak, setWeeklyStreak] = useState(0);
   const [totalWeight, setTotalWeight] = useState(0);
   const [totalDistance, setTotalDistance] = useState(0);
-const [lastWorkoutWeight, setLastWorkoutWeight] = useState(0);
-const [showLastWorkoutWeight, setShowLastWorkoutWeight] = useState(false);
+  const [lastWorkoutWeight, setLastWorkoutWeight] = useState(0);
+  const [showLastWorkoutWeight, setShowLastWorkoutWeight] = useState(false);
   const [useKilometers, setUseKilometers] = useState(() => localStorage.getItem('distanceUnit') === 'km');
   const [useKilograms, setUseKilograms] = useState(() => localStorage.getItem('weightUnit') === 'kg');
-
+  const [workoutHistory, setWorkoutHistory] = useState([]);
   const [showDistanceBreakdown, setShowDistanceBreakdown] = useState(false);
-  const [distanceByType, setDistanceByType] = useState({ walkRun: 0, bike: 0 });
+  const [distanceUnit, setDistanceUnit] = useState('miles'); // or 'km' if you prefer default
+  const [distanceByType, setDistanceByType] = useState({
+    Running: 0,
+    Walking: 0,
+    Cycling: 0,
+    Other: 0,
+  });
+  
+
+  useEffect(() => {
+    const fetchWorkoutHistory = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+  
+      const userRef = doc(db, 'users', user.uid);
+      const snap = await getDoc(userRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.workoutHistory) {
+          setWorkoutHistory(data.workoutHistory);
+        }
+      }
+    };
+  
+    fetchWorkoutHistory();
+  }, []);
 
   useEffect(() => {
     onAuthStateChanged(auth, (user) => {
@@ -234,13 +259,15 @@ const [showLastWorkoutWeight, setShowLastWorkoutWeight] = useState(false);
             </p>
             <p className="text-gray-400 text-xs mt-1">TOTAL DISTANCE TRAVELED</p>
 
-            {showDistanceBreakdown && (
-              <div className="mt-2 text-sm text-gray-300 space-y-1">
-                <p>🏃 Walk/Run: {useKilometers ? (distanceByType.walkRun * 1.60934).toFixed(2) + ' km' : distanceByType.walkRun.toFixed(2) + ' mi'}</p>
-                <p>🚴 Bike: {useKilometers ? (distanceByType.bike * 1.60934).toFixed(2) + ' km' : distanceByType.bike.toFixed(2) + ' mi'}</p>
-              </div>
-            )}
-          </div>
+          {showDistanceBreakdown && (
+            <div className="mt-2 ml-2 text-sm text-white space-y-1">
+              <div>🏃 Running: {distanceByType.running?.toFixed(2) || 0} {distanceUnit}</div>
+              <div>🚶 Walking: {distanceByType.walking?.toFixed(2) || 0} {distanceUnit}</div>
+              <div>🚴 Cycling: {distanceByType.cycling?.toFixed(2) || 0} {distanceUnit}</div>
+              <div>🏋️ Other: {distanceByType.other?.toFixed(2) || 0} {distanceUnit}</div>
+            </div>
+          )}
+        </div>
 
           <div>
             <p
