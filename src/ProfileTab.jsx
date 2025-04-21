@@ -243,10 +243,10 @@ export default function ProfileTab() {
 
           {showDistanceBreakdown && (
             <div className="mt-2 ml-2 text-sm text-white space-y-1">
-              <div>🏃 Running: {distanceByType.running?.toFixed(2) || 0} {distanceUnit}</div>
-              <div>🚶 Walking: {distanceByType.walking?.toFixed(2) || 0} {distanceUnit}</div>
-              <div>🚴 Cycling: {distanceByType.cycling?.toFixed(2) || 0} {distanceUnit}</div>
-              <div>🏋️ Other: {distanceByType.other?.toFixed(2) || 0} {distanceUnit}</div>
+              <div>Running: {distanceByType.Running?.toFixed(2) || 0} {distanceUnit}</div>
+              <div>Walking: {distanceByType.Walking?.toFixed(2) || 0} {distanceUnit}</div>
+              <div>Cycling: {distanceByType.Cycling?.toFixed(2) || 0} {distanceUnit}</div>
+              <div>Other: {distanceByType.Other?.toFixed(2) || 0} {distanceUnit}</div>
             </div>
           )}
         </div>
