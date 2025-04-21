@@ -33,11 +33,12 @@ export default function ProfileTab() {
   const [showDistanceBreakdown, setShowDistanceBreakdown] = useState(false);
   const [distanceUnit, setDistanceUnit] = useState('miles'); // or 'km' if you prefer default
   const [distanceByType, setDistanceByType] = useState({
-    Running: 0,
     Walking: 0,
+    Running: 0,
     Cycling: 0,
     Other: 0,
   });
+  
   
 
   useEffect(() => {
@@ -81,6 +82,9 @@ export default function ProfileTab() {
       setProfilePic(data.profilePic || '/default-avatar.png');
       setTotalWeight(data.totalWeight || 0);
       setTotalDistance(data.totalDistance || 0);
+      if (data.totalDistanceByType) {
+        setDistanceByType(data.totalDistanceByType);
+      }      
       const history = JSON.parse(localStorage.getItem('workoutHistory')) || [];
       if (history.length > 0) {
         const last = history[history.length - 1];
@@ -100,30 +104,8 @@ export default function ProfileTab() {
   }
 };
 
-  
-        {/*} ⬇️ Add this useEffect under your others*/}
-        useEffect(() => {
-          const storedWorkouts = JSON.parse(localStorage.getItem('workoutHistory')) || [];
-          let walkRun = 0;
-          let bike = 0;
-    
-      storedWorkouts.forEach(workout => {
-        workout.exercises?.forEach(ex => {
-          ex.sets?.forEach(set => {
-            const dist = parseFloat(set.distance || 0);
-            if (dist > 0) {
-              if (/bike|cycling/i.test(ex.name)) {
-                bike += dist;
-              } else if (/walk|run|treadmill|jog|sprint/i.test(ex.name)) {
-                walkRun += dist;
-              }
-            }
-          });
-        });
-      });
-    
-      setDistanceByType({ walkRun, bike });
-    }, [totalDistance]);
+
+          
 
   const saveUserData = async (field, value) => {
     if (!uid) return;

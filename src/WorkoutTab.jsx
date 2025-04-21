@@ -67,6 +67,13 @@ export default function WorkoutTab() {
   const [pendingRestTrigger, setPendingRestTrigger] = useState(false);
   const [showWorkoutSummary, setShowWorkoutSummary] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
+  const [distanceByType, setDistanceByType] = useState({
+    Walking: 0,
+    Running: 0,
+    Cycling: 0,
+    Other: 0
+  });
+  
 
 
 
@@ -102,6 +109,10 @@ export default function WorkoutTab() {
 
         setTotalWeight(data.totalWeight || 0);
         setTotalDistance(data.totalDistance || 0);
+        if (data.totalDistanceByType) {
+          setDistanceByType(data.totalDistanceByType);
+        }
+        
       }
     };
 
@@ -344,9 +355,42 @@ const cancelWorkout = () => {
 
 };
 
+
+const calculateDistanceByType = (exercises) => {
+  const distanceData = {
+    Walking: 0,
+    Running: 0,
+    Cycling: 0,
+    Other: 0,
+  };
+
+  exercises.forEach(ex => {
+    if (cardioExercises.includes(ex.name) && ex.sets) {
+      ex.sets.forEach(set => {
+        const dist = parseFloat(set.distance) || 0;
+
+        if (ex.name.toLowerCase().includes('walk')) {
+          distanceData.Walking += dist;
+        } else if (ex.name.toLowerCase().includes('run')) {
+          distanceData.Running += dist;
+        } else if (ex.name.toLowerCase().includes('bike') || ex.name.toLowerCase().includes('cycle')) {
+          distanceData.Cycling += dist;
+        } else {
+          distanceData.Other += dist;
+        }
+      });
+    }
+  });
+
+  return distanceData;
+};
+
+
 // Finished the workout session and Stores information + Workout Summary Highlights and Ai fact
 const finishWorkout = async () => {
   const totalWeight = calculateTotalWeight(selectedExercises);
+  const distanceByType = calculateDistanceByType(selectedExercises);
+
 
   const cardioSets = selectedExercises
     .filter(e => cardioExercises.includes(e.name))
@@ -365,15 +409,22 @@ const finishWorkout = async () => {
     .sort((a, b) => (parseFloat(b.weight) * parseInt(b.reps)) - (parseFloat(a.weight) * parseInt(a.reps)))
     .slice(0, 3);
 
+    const formattedExercises = selectedExercises.map(ex => ({
+      ...ex,
+      sets: ex.sets.map(set => ({
+        ...set,
+      }))      
+    }));
+    
+
   const completedWorkout = {
     name: workoutName || `Workout - ${new Date().toLocaleDateString()}`,
     timestamp: Date.now(),
     duration: elapsedTime,
-    exercises: selectedExercises,
+    exercises: formattedExercises,
     totalWeight,
   };
 
-  // Save last used sets to localStorage
   const lastSets = JSON.parse(localStorage.getItem('lastUsedSets') || '{}');
   selectedExercises.forEach(ex => {
     if (ex.sets?.length > 0) {
@@ -382,7 +433,6 @@ const finishWorkout = async () => {
   });
   localStorage.setItem('lastUsedSets', JSON.stringify(lastSets));
 
-  // Save workout to history
   const updatedHistory = [...workoutHistory, completedWorkout];
   setWorkoutHistory(updatedHistory);
   localStorage.setItem('workoutHistory', JSON.stringify(updatedHistory));
@@ -390,7 +440,11 @@ const finishWorkout = async () => {
   const user = auth.currentUser;
   if (user) {
     const userRef = doc(db, 'users', user.uid);
-    await updateDoc(userRef, { workoutHistory: updatedHistory });
+    await updateDoc(userRef, {
+      workoutHistory: updatedHistory,
+      totalDistanceByType: distanceByType,
+    });
+    
   }
 
   try {
@@ -594,13 +648,21 @@ return (
                           const shareText = `
 Workout: ${workout.name}
 Date: ${new Date(workout.timestamp).toLocaleString()}
-Duration: ${workout.duration || 'N/A'} mins
 Total Weight: ${workout.totalWeight || 0} lbs
 
 Exercises:
-${workout.exercises.map(ex =>
-  `- ${ex.name}: \n ${ex.sets.map(set => `${set.weight} lbs - ${set.reps} reps`).join('\n ')}`
-).join('\n')}
+${workout.exercises.map(ex => {
+  const isCardio = cardioExercises.includes(ex.name);
+  const setLines = ex.sets.map((set, idx) => {
+    if (isCardio) {
+      return `${set.distance || 0} mi in ${set.time || 0} min`;
+    } else {
+      return `${set.weight || 0} lbs x ${set.reps || 0} reps`;
+    }
+  }).join('\n ');
+  return `- ${ex.name}:\n ${setLines}`;
+}).join('\n')}
+
                           `.trim();
 
                           if (navigator.share) {
@@ -625,16 +687,19 @@ ${workout.exercises.map(ex =>
 
                   {/* 🏋️ List of exercises and sets for that workout */}
                   <div className="mt-2 text-sm">
-                    {workout.exercises.map((ex, idx) => (
-                      <div key={idx} className="mb-2">
-                        <p className="font-semibold">{ex.name}</p>
-                        {ex.sets.map((set, i) => (
-                          <p key={i} className="text-gray-300 ml-4">
-                            {set.tag ? `${set.tag}` : `Set ${i + 1}`} : {set.weight} lbs - {set.reps} reps
-                          </p>
-                        ))}
-                      </div>
-                    ))}
+                  {workout.exercises.map((ex, idx) => (
+                    <div key={idx} className="mb-2">
+                      <p className="font-semibold">{ex.name}</p>
+                      {ex.sets.map((set, i) => (
+                        <p key={i} className="text-gray-300 ml-4">
+                          {cardioExercises.includes(ex.name)
+                            ? `${set.distance || 0} mi in ${set.time || 0} min`
+                            : `${set.tag ? `${set.tag} • ` : ''}${set.weight || 0} lbs x ${set.reps || 0} reps`}
+                        </p>
+                      ))}
+                    </div>
+                  ))}
+
                   </div>
                 </div>
               ))
