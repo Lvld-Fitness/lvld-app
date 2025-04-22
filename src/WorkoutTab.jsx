@@ -487,6 +487,14 @@ const finishWorkout = async () => {
     });
   }
   
+  await addDoc(collection(db, 'posts'), {
+    userId: user.uid,
+    content: `🏋️ "${completedWorkout.name}" complete!\n• Total Weight: ${totalWeight.toLocaleString()} lbs\n• Distance: ${totalDistance.toFixed(2)} mi\nKeep pushing! 🔥`,
+    timestamp: Date.now(),
+    reactions: {},
+    deleted: false,
+  });
+  
 
   setShowWorkoutSummary(true);
 
