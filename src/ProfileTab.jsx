@@ -79,7 +79,7 @@ export default function ProfileTab() {
       setName(data.name || 'John Doe');
       setHandle(data.handle || '@johndoe');
       setBio(data.bio || 'This is your bio. Click to edit.');
-      setProfilePic(data.profilePic || '/default-avatar.png');
+      setProfilePic(data.profilePic !== undefined ? data.profilePic : '/default-avatar.png');
       setTotalWeight(data.totalWeight || 0);
       setTotalDistance(data.totalDistance || 0);
       if (data.totalDistanceByType) {

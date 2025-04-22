@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { doc, getDoc, getDocs, collection, deleteDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db, auth } from './firebase';
-import { DotsThreeVertical, ThumbsUp, Barbell, Fire, Chats } from 'phosphor-react';
+import { DotsThreeVertical, ThumbsUp, Barbell, Fire, Chats, CheckCircle, } from 'phosphor-react';
 import { useNavigate } from 'react-router-dom';
 import CommentSection from './CommentSection';
 
@@ -17,6 +17,8 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
   const currentUser = auth.currentUser;
   const [commentCount, setCommentCount] = useState(0);
   const optionsRef = useRef();
+  const [hideInDiscovery, setHideInDiscovery] = useState(false);
+
 
 
 
@@ -88,6 +90,7 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
   const getReactionCount = (type) => post.reactions?.[type]?.length || 0;
   const hasReacted = (type) => post.reactions?.[type]?.includes(currentUser?.uid);
 
+if (hideInDiscovery) return null;
   return (
     <div className="bg-gray-800 p-4 rounded mb-4 shadow relative">
       <div className="flex justify-between items-start mb-3">
@@ -107,11 +110,13 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
         await updateDoc(userRef, {
           following: arrayUnion(post.userId)
         });
+        // Hide the post from discovery immediately
+        setHideInDiscovery(true); // use local state to skip render
       }}
       title="Follow this user"
       className="text-green-400 hover:text-green-500 text-lg"
     >
-      ✅
+      <CheckCircle size={22} weight="fill" className="text-green-400 hover:text-green-500" />
     </button>
   )}
 </div>

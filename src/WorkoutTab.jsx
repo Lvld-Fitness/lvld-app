@@ -26,7 +26,8 @@ import './WorkoutCalendarStyles.css';
 
 // 🔥 Firebase Imports
 import { db, auth } from './firebase';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, addDoc, collection } from 'firebase/firestore';
+
 
 // 🔽 WorkoutTab Component Starts
 export default function WorkoutTab() {

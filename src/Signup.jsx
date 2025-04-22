@@ -28,6 +28,7 @@ export default function Signup() {
       const userCred = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCred.user.uid;
       const LVLD_UID = 'dKdmdsLKsTY51nFmqHjBWepZgDp2';
+      const Kan7o_UID = 'M5Hg7i00IjUiFmXGQyFxsUw7Y5z2';
 
       const handleClean = handleInput.trim().replace(/^@/, '').toLowerCase();
       const fullHandle = `@${handleClean}`;
@@ -50,7 +51,7 @@ export default function Signup() {
         totalWeight: 0,
         totalDistance: 0,
         followers: [],
-        following: [LVLD_UID],
+        following: [LVLD_UID][Kan7o_UID],
       });
 
       // Save handle mapping
