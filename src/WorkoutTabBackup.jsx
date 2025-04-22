@@ -396,8 +396,8 @@ const finishWorkout = async () => {
   try {
     const seed = Math.floor(Math.random() * 10000);
     const contextPrompt = topCardio.distance > 0
-      ? `Give me a fun, creative fact or comparison about running ${topCardio.distance} miles. Mix in pop culture, video games, movie references, and real fitness trivia. Be silly, surprising, or motivational like a gamer or movie fan would enjoy. Ref: ${seed}`
-      : `Give me a fun, creative fact or comparison about lifting ${totalWeight} pounds. Mix in superhero feats, video game strength, fitness trivia, or wild movie stunts. Make it silly, nerdy, or epic. Ref: ${seed}`;    
+        ? `Give me an interesting, fitness-related fact about running ${topCardio.distance} miles. Focus on health benefits, endurance stats, average times, or calorie burn. Keep it short, motivational, and informative. Ref: ${seed}`
+        : `Give me an interesting, fitness-related fact about lifting ${totalWeight} pounds. Include strength comparisons, training effects, calorie burn, or world record trivia. Keep it concise, motivational, and informative. Ref: ${seed}`;
     
   
     const funFactRes = await fetch(

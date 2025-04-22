@@ -9,55 +9,59 @@ export default function Signup() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [handle, setHandle] = useState('');
-  const [name, setName] = useState('');
+  const [handleInput, setHandleInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
   const [error, setError] = useState('');
   const [showTerms, setShowTerms] = useState(false);
   const [agree, setAgree] = useState(false);
-  const [handleInput, setHandleInput] = useState('');
-  const [nameInput, setNameInput] = useState('');
-
 
   const handleSignup = async (e) => {
     e.preventDefault();
     setError('');
-  
+
     if (!agree) {
       setError('You must agree to the terms to continue.');
       return;
     }
-  
+
     try {
       const userCred = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCred.user.uid;
-  
+      const LVLD_UID = 'dKdmdsLKsTY51nFmqHjBWepZgDp2';
+
       const handleClean = handleInput.trim().replace(/^@/, '').toLowerCase();
-  
-      const LVLD_UID = 'dKdmdsLKsTY51nFmqHjBWepZgDp2'; // 🔁 Replace with actual LVLD account UID
-  
-      // Save profile
+      const fullHandle = `@${handleClean}`;
+
+      // Check if handle already exists
+      const handleRef = doc(db, 'handles', handleClean);
+      const existingHandle = await getDoc(handleRef);
+      if (existingHandle.exists()) {
+        throw new Error('Handle is already taken. Please choose another one.');
+      }
+
+      // Save user profile
       await setDoc(doc(db, 'users', uid), {
         name: nameInput.trim(),
-        handle: `@${handleClean}`,
+        handle: fullHandle,
+        handleSearch: handleClean, // <- searchable lowercase handle (no @)
+        nameSearch: nameInput.trim().toLowerCase(), // <- searchable lowercase name
         bio: '',
         profilePic: '/default-avatar.png',
         totalWeight: 0,
         totalDistance: 0,
         followers: [],
-        following: [LVLD_UID] // ✅ Auto-follow LVLD
+        following: [LVLD_UID],
       });
-  
-      // Save handle
-      await setDoc(doc(db, 'handles', handleClean), { uid });
-  
+
+      // Save handle mapping
+      await setDoc(handleRef, { uid });
+
       navigate('/dashboard');
     } catch (err) {
       console.error(err);
       setError(err.message || 'Signup failed');
     }
   };
-  
-  
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 relative">
@@ -115,7 +119,13 @@ export default function Signup() {
             className="accent-purple-600"
           />
           <span>I am at least 16 years old and agree to the terms of use. </span>
-          <button type="button" onClick={() => setShowTerms(true)} className="text-blue-400 underline ml-1">Read Terms</button>
+          <button
+            type="button"
+            onClick={() => setShowTerms(true)}
+            className="text-blue-400 underline ml-1"
+          >
+            Read Terms
+          </button>
         </label>
 
         {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -134,9 +144,7 @@ export default function Signup() {
             <h2 className="text-xl font-bold mb-4">Terms of Service</h2>
             <p className="text-sm mb-4">
               Thank you for choosing LVLD! By using LVLD, you agree to abide by our community standards. You must be at least 16 years old.
-              Do not impersonate others, post harmful or illegal content, or abuse the platform. Your data is
-              stored securely and is not sold to third parties. We may update our terms at any time, and continued
-              use of the platform implies your acceptance of those changes.
+              Do not impersonate others, post harmful or illegal content, or abuse the platform. Your data is stored securely and is not sold to third parties. We may update our terms at any time, and continued use of the platform implies your acceptance of those changes.
             </p>
             <button
               onClick={() => setShowTerms(false)}

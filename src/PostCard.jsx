@@ -1,5 +1,5 @@
 // PostCard.jsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { doc, getDoc, getDocs, collection, deleteDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { DotsThreeVertical, ThumbsUp, Barbell, Fire, Chats } from 'phosphor-react';
@@ -8,7 +8,7 @@ import CommentSection from './CommentSection';
 
 
 
-export default function PostCard({ post }) {
+export default function PostCard({ post, showFollowOption = false, currentUserId, following = [] }) {
   const [username, setUsername] = useState('User');
   const [profilePic, setProfilePic] = useState('/default-avatar.png');
   const [showOptions, setShowOptions] = useState(false);
@@ -16,6 +16,8 @@ export default function PostCard({ post }) {
   const navigate = useNavigate();
   const currentUser = auth.currentUser;
   const [commentCount, setCommentCount] = useState(0);
+  const optionsRef = useRef();
+
 
 
   useEffect(() => {
@@ -39,6 +41,22 @@ export default function PostCard({ post }) {
   
     fetchCommentCount();
   }, [post.id]);
+  
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (optionsRef.current && !optionsRef.current.contains(e.target)) {
+        setShowOptions(false);
+      }
+    };
+  
+    if (showOptions) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+  
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showOptions]);
   
 
   const handleReact = async (type) => {
@@ -80,7 +98,24 @@ export default function PostCard({ post }) {
             onClick={() => navigate(`/profile/${post.userId}`)}
             className="w-10 h-10 rounded-full object-cover border border-gray-600 cursor-pointer"
           />
-          <div className="text-lg font-extrabold text-white">{username}</div>
+          <div className="text-lg font-extrabold text-white flex items-center gap-2">
+  {username}
+  {showFollowOption && !following.includes(post.userId) && post.userId !== currentUserId && (
+    <button
+      onClick={async () => {
+        const userRef = doc(db, 'users', currentUserId);
+        await updateDoc(userRef, {
+          following: arrayUnion(post.userId)
+        });
+      }}
+      title="Follow this user"
+      className="text-green-400 hover:text-green-500 text-lg"
+    >
+      ✅
+    </button>
+  )}
+</div>
+
         </div>
         <button onClick={() => setShowOptions(!showOptions)} className="text-white">
           <DotsThreeVertical size={24} />
@@ -88,12 +123,65 @@ export default function PostCard({ post }) {
       </div>
 
       {showOptions && (
-        <div className="absolute right-4 top-10 bg-gray-900 border border-gray-700 rounded shadow-md z-50">
-          <button onClick={() => updateDoc(doc(db, 'posts', post.id), { deleted: true })} className="block w-full text-left text-sm text-red-400 hover:bg-gray-700 px-4 py-2">
-            🗑️ Delete
-          </button>
-        </div>
-      )}
+  <div
+    ref={optionsRef}
+    className="absolute right-4 top-10 bg-gray-900 border border-gray-700 rounded shadow-md z-50"
+  >
+    {currentUser?.uid === post.userId ? (
+      <>
+        <button
+          onClick={() => {
+            const newContent = prompt("Edit your post:", post.content);
+            if (newContent !== null) {
+              updateDoc(doc(db, 'posts', post.id), { content: newContent });
+              setShowOptions(false);
+            }
+          }}
+          className="block w-full text-left text-sm text-blue-400 hover:bg-gray-700 px-4 py-2"
+        >
+          Edit
+        </button>
+        <button
+          onClick={() => {
+            updateDoc(doc(db, 'posts', post.id), { deleted: true });
+            setShowOptions(false);
+          }}
+          className="block w-full text-left text-sm text-red-400 hover:bg-gray-700 px-4 py-2"
+        >
+          Delete
+        </button>
+      </>
+    ) : (
+      <>
+        <button
+          onClick={async () => {
+            await updateDoc(doc(db, 'users', currentUser.uid), {
+              hiddenPosts: arrayUnion(post.id)
+            });
+            setShowOptions(false);
+          }}
+          className="block w-full text-left text-sm text-yellow-300 hover:bg-gray-700 px-4 py-2"
+        >
+          Hide
+        </button>
+        <button
+          onClick={async () => {
+            window.location.href = `mailto:lvldworkout@gmail.com?subject=Reported%20Post&body=Reported%20Post%20Link:%20https://lvld.app/post/${post.id}`;
+            await updateDoc(doc(db, 'users', currentUser.uid), {
+              hiddenPosts: arrayUnion(post.id)
+            });
+            setShowOptions(false);
+          }}
+          className="block w-full text-left text-sm text-red-300 hover:bg-gray-700 px-4 py-2"
+        >
+          Report
+        </button>
+      </>
+    )}
+  </div>
+)}
+
+
 
       <p className="text-white mb-2 whitespace-pre-line">{post.content}</p>
 
