@@ -26,7 +26,7 @@ import './WorkoutCalendarStyles.css';
 
 // 🔥 Firebase Imports
 import { db, auth } from './firebase';
-import { doc, getDoc, setDoc, updateDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, addDoc as firebaseAddDoc, collection as firebaseCollection } from 'firebase/firestore';
 
 
 // 🔽 WorkoutTab Component Starts
@@ -488,13 +488,14 @@ const finishWorkout = async () => {
     });
   }
   
-  await addDoc(collection(db, 'posts'), {
+  await firebaseAddDoc(firebaseCollection(db, 'posts'), {
     userId: user.uid,
     content: `🏋️ "${completedWorkout.name}" complete!\n• Total Weight: ${totalWeight.toLocaleString()} lbs\n• Distance: ${totalDistance.toFixed(2)} mi\nKeep pushing! 🔥`,
     timestamp: Date.now(),
     reactions: {},
     deleted: false,
   });
+  
   
 
   setShowWorkoutSummary(true);
