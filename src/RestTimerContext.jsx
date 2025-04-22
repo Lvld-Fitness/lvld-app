@@ -16,11 +16,6 @@ export function RestTimerProvider({ children }) {
     setTimerActive(false);
   };
 
-  useEffect(() => {
-    if (Notification.permission !== 'granted') {
-      Notification.requestPermission();
-    }
-  }, []);  
 
   return (
     <RestTimerContext.Provider value={{ timerActive, timerDuration, startTimer, stopTimer }}>
