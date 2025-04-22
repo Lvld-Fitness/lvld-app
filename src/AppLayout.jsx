@@ -2,10 +2,26 @@
 import { Outlet } from 'react-router-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { House, Barbell, UsersThree, ChatCircleDots } from 'phosphor-react';
+import { onSnapshot, collection } from 'firebase/firestore';
+import { db, auth } from './firebase';
 
 export default function AppLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [hasUnreadNotif, setHasUnreadNotif] = useState(false);
+
+
+  useEffect(() => {
+    if (!auth.currentUser) return;
+    const unsub = onSnapshot(
+      collection(db, 'users', auth.currentUser.uid, 'notifications'),
+      (snap) => {
+        const unread = snap.docs.some(doc => !doc.data().read);
+        setHasUnreadNotif(unread);
+      }
+    );
+    return () => unsub();
+  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
@@ -39,11 +55,17 @@ export default function AppLayout({ children }) {
 
         <button
           onClick={() => navigate('/profile')}
-          className={`flex flex-col items-center text-sm ${location.pathname === '/profile' ? 'text-red-500' : 'text-gray-400'}`}
+          className={`flex flex-col items-center text-sm relative ${location.pathname === '/profile' ? 'text-red-500' : 'text-gray-400'}`}
         >
-          <House size={24} />
+          <div className="relative">
+            <House size={24} />
+            {hasUnreadNotif && (
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+            )}
+          </div>
           Home
         </button>
+
       </nav>
     </div>
   );

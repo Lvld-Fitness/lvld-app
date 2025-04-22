@@ -147,10 +147,10 @@ if (hideInDiscovery) return null;
           Edit
         </button>
         <button
-          onClick={() => {
-            updateDoc(doc(db, 'posts', post.id), { deleted: true });
+          onClick={async () => {
+            await deleteDoc(doc(db, 'posts', post.id));
             setShowOptions(false);
-          }}
+          }}          
           className="block w-full text-left text-sm text-red-400 hover:bg-gray-700 px-4 py-2"
         >
           Delete

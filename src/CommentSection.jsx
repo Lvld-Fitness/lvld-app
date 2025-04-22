@@ -64,15 +64,36 @@ export default function CommentSection({ postId }) {
   const handleNewComment = async ({ text }) => {
     const user = auth.currentUser;
     if (!user) return;
-
-    await addDoc(collection(db, 'posts', postId, 'comments'), {
+  
+    const newCommentRef = await addDoc(collection(db, 'posts', postId, 'comments'), {
       userId: user.uid,
       text,
       timestamp: serverTimestamp(),
     });
-
+  
+    // 🔔 Handle mentions
+    const mentions = text.match(/@[\w\d]+/g) || [];
+    for (const rawHandle of mentions) {
+      const cleanHandle = rawHandle.replace('@', '').toLowerCase();
+      const handleSnap = await getDoc(doc(db, 'handles', cleanHandle));
+  
+      if (handleSnap.exists()) {
+        const { uid: mentionedUid } = handleSnap.data();
+        await addDoc(collection(db, 'users', mentionedUid, 'notifications'), {
+          type: 'mention',
+          from: user.uid,
+          postId,
+          commentId: newCommentRef.id,
+          text,
+          timestamp: Date.now(),
+          read: false,
+        });
+      }
+    }
+  
     fetchComments();
   };
+  
 
   const handleNewReply = async (commentId, { text }) => {
     const user = auth.currentUser;
