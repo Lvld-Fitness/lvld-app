@@ -4,6 +4,12 @@ export default function RestFloatingTimer({ duration = 30, onComplete }) {
   const barRef = useRef(null);
   const animationRef = useRef(null);
   const startTime = useRef(null);
+  const dingPlayedRef = useRef(false);
+
+  const playDing = () => {
+    const audio = new Audio('/ding.mp3'); // put ding.mp3 in /public folder
+    audio.play().catch((e) => console.error('Ding failed to play:', e));
+  };
 
   const animate = (timestamp) => {
     if (!startTime.current) startTime.current = timestamp;
@@ -24,6 +30,11 @@ export default function RestFloatingTimer({ duration = 30, onComplete }) {
     if (progress > 0) {
       animationRef.current = requestAnimationFrame(animate);
     } else {
+      if (!dingPlayedRef.current) {
+        playDing();
+        dingPlayedRef.current = true;
+      }
+
       if (onComplete) {
         onComplete();
       } else {
