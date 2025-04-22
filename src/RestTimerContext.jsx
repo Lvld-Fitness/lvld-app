@@ -1,5 +1,5 @@
 // RestTimerContext.jsx
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const RestTimerContext = createContext();
 
@@ -15,6 +15,12 @@ export function RestTimerProvider({ children }) {
   const stopTimer = () => {
     setTimerActive(false);
   };
+
+  useEffect(() => {
+    if (Notification.permission !== 'granted') {
+      Notification.requestPermission();
+    }
+  }, []);  
 
   return (
     <RestTimerContext.Provider value={{ timerActive, timerDuration, startTimer, stopTimer }}>
