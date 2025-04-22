@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Gear } from 'phosphor-react';
 import { auth, db } from './firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 
@@ -38,8 +38,23 @@ export default function ProfileTab() {
     Cycling: 0,
     Other: 0,
   });
-  
-  
+  const [notifications, setNotifications] = useState([]);
+
+useEffect(() => {
+  if (!uid) return;
+  const q = query(
+    collection(db, 'users', uid, 'notifications'),
+    orderBy('timestamp', 'desc')
+  );
+
+  const unsub = onSnapshot(q, (snap) => {
+    const notes = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setNotifications(notes);
+  });
+
+  return () => unsub();
+}, [uid]);
+
 
   useEffect(() => {
     const fetchWorkoutHistory = async () => {
@@ -168,6 +183,29 @@ export default function ProfileTab() {
     setCurrentLevelXp(xpCopy);
     setCurrentLevelXpNeeded(xpForLevel);
   }, [xp]);
+  
+//Notifications
+  <div className="mt-6">
+  <h2 className="text-xl font-bold mb-2">Notifications</h2>
+  {notifications.length === 0 ? (
+    <p className="text-gray-400 text-sm">No notifications yet.</p>
+  ) : (
+    notifications.map(n => (
+      <div
+        key={n.id}
+        onClick={async () => {
+          await updateDoc(doc(db, 'users', uid, 'notifications', n.id), { read: true });
+          navigate(`/post/${n.postId}`);
+        }}
+        className="p-3 mb-2 bg-gray-800 rounded hover:bg-gray-700 cursor-pointer"
+      >
+        <div className="text-sm text-white">You were mentioned in a post</div>
+        <div className="text-xs text-gray-400">{new Date(n.timestamp).toLocaleString()}</div>
+      </div>
+    ))
+  )}
+</div>
+
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -231,7 +269,7 @@ export default function ProfileTab() {
 
         <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mt-6 text-center w-full max-w-2xl">
 
-          {/*} JSX section to replace*/}
+          {/*} Drop Downs*/}
           <div>
             <p
               onClick={() => setShowDistanceBreakdown(!showDistanceBreakdown)}

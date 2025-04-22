@@ -26,7 +26,8 @@ import './WorkoutCalendarStyles.css';
 
 // 🔥 Firebase Imports
 import { db, auth } from './firebase';
-import { doc, getDoc, setDoc, updateDoc, addDoc as firebaseAddDoc, collection as firebaseCollection } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, addDoc as firebaseAddDoc, collection as firebaseCollection, arrayUnion } from 'firebase/firestore';
+import { differenceInCalendarDays } from 'date-fns'; // install with: npm i date-fns
 
 
 // 🔽 WorkoutTab Component Starts
@@ -441,12 +442,32 @@ const finishWorkout = async () => {
   const user = auth.currentUser;
   if (user) {
     const userRef = doc(db, 'users', user.uid);
+    const userSnap = await getDoc(userRef);
+    const userData = userSnap.exists() ? userSnap.data() : {};
+  
+    let lastWorkoutDate = userData.lastWorkoutDate ? new Date(userData.lastWorkoutDate) : null;
+    let newStreak = userData.workoutStreak || 0;
+  
+    const today = new Date();
+    const dayDiff = lastWorkoutDate ? Math.floor((today - lastWorkoutDate) / (1000 * 60 * 60 * 24)) : null;
+  
+    // Reset streak if more than 7 days since last workout
+    if (dayDiff !== null && dayDiff > 7) {
+      newStreak = 0;
+    }
+  
+    newStreak += 1;
+  
     await updateDoc(userRef, {
       workoutHistory: updatedHistory,
       totalDistanceByType: distanceByType,
+      totalWeight,
+      totalDistance,
+      lastWorkoutDate: today.toISOString(),
+      workoutStreak: newStreak,
     });
-    
   }
+  
 
   try {
     const contextPrompt = topCardio.distance > 0
