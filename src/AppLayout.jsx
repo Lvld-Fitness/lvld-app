@@ -4,6 +4,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { House, Barbell, UsersThree, ChatCircleDots } from 'phosphor-react';
 import { onSnapshot, collection } from 'firebase/firestore';
 import { db, auth } from './firebase';
+import { useState, useEffect } from 'react';
+
 
 export default function AppLayout({ children }) {
   const location = useLocation();
