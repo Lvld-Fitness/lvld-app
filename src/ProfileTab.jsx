@@ -39,6 +39,9 @@ export default function ProfileTab() {
     Other: 0,
   });
   const [notifications, setNotifications] = useState([]);
+  const [selectedTitle, setSelectedTitle] = useState('');
+  const [unlockedTitles, setUnlockedTitles] = useState([]);
+
 
 useEffect(() => {
   if (!uid) return;
@@ -106,6 +109,10 @@ useEffect(() => {
         setLastWorkoutWeight(last.totalWeight || 0);
       }
 
+      setSelectedTitle(data.selectedTitle || 'No Titles Unlocked');
+      setUnlockedTitles(data.unlockedTitles || []);
+
+      
 
           // ✅ Auto-register handle mapping if missing
     const handleClean = (data.handle || '').replace('@', '').toLowerCase();
@@ -120,7 +127,26 @@ useEffect(() => {
 };
 
 
-          
+const recalculateDistanceByType = (history) => {
+  const result = {};
+  history.forEach(workout => {
+    workout.exercises?.forEach(ex => {
+      if (ex.sets && Array.isArray(ex.sets)) {
+        ex.sets.forEach(set => {
+          const distance = parseFloat(set.distance || 0);
+          if (distance > 0) {
+            if (!result[ex.name]) result[ex.name] = 0;
+            result[ex.name] += distance;
+          }
+        });
+      }
+    });
+  });
+  return result;
+};
+
+
+         
 
   const saveUserData = async (field, value) => {
     if (!uid) return;
@@ -183,7 +209,7 @@ useEffect(() => {
     setCurrentLevelXp(xpCopy);
     setCurrentLevelXpNeeded(xpForLevel);
   }, [xp]);
-  
+
 //Notifications
   <div className="mt-6">
   <h2 className="text-xl font-bold mb-2">Notifications</h2>
@@ -245,6 +271,10 @@ useEffect(() => {
         </label>
 
         <h1 className="text-3xl font-extrabold mt-4 uppercase">{name}</h1>
+        {selectedTitle !== 'No Titles Unlocked' && (
+         <p className="text-sm font-bold text-yellow-400">{selectedTitle}</p>
+       )}
+
         <p className="text-2xl font-bold text-red-500">{handle}</p>
 
         {editingBio ? (
@@ -271,23 +301,23 @@ useEffect(() => {
 
           {/*} Drop Downs*/}
           <div>
-            <p
-              onClick={() => setShowDistanceBreakdown(!showDistanceBreakdown)}
-              className="text-2xl font-extrabold cursor-pointer"
-            >
-              {displayDistance}
-            </p>
-            <p className="text-gray-400 text-xs mt-1">TOTAL DISTANCE TRAVELED</p>
+  <p className="text-2xl font-extrabold cursor-default">
+    {displayDistance}
+  </p>
+  <p className="text-gray-400 text-xs mt-1">TOTAL DISTANCE TRAVELED</p>
 
-          {showDistanceBreakdown && (
-            <div className="mt-2 ml-2 text-sm text-white space-y-1">
-              <div>Running: {distanceByType.Running?.toFixed(2) || 0} {distanceUnit}</div>
-              <div>Walking: {distanceByType.Walking?.toFixed(2) || 0} {distanceUnit}</div>
-              <div>Cycling: {distanceByType.Cycling?.toFixed(2) || 0} {distanceUnit}</div>
-              <div>Other: {distanceByType.Other?.toFixed(2) || 0} {distanceUnit}</div>
-            </div>
-          )}
-        </div>
+  {/* 
+  {showDistanceBreakdown && (
+    <div className="mt-2 ml-2 text-sm text-white space-y-1">
+      <div>Running: {distanceByType.Running?.toFixed(2) || 0} {distanceUnit}</div>
+      <div>Walking: {distanceByType.Walking?.toFixed(2) || 0} {distanceUnit}</div>
+      <div>Cycling: {distanceByType.Cycling?.toFixed(2) || 0} {distanceUnit}</div>
+      <div>Other: {distanceByType.Other?.toFixed(2) || 0} {distanceUnit}</div>
+    </div>
+  )}
+  */}
+</div>
+
 
           <div>
             <p
@@ -354,6 +384,27 @@ useEffect(() => {
                 <label className="block text-sm mb-1">Weight Units</label>
                 <button onClick={() => { const newSetting = !useKilograms; setUseKilograms(newSetting); localStorage.setItem('weightUnit', newSetting ? 'kg' : 'lbs'); }} className="w-full bg-gray-700 hover:bg-gray-600 py-1 px-2 rounded text-sm">Switch to {useKilograms ? 'Pounds' : 'Kilograms'}</button>
               </div>
+
+              {unlockedTitles.length > 0 && (
+                <div>
+                  <label className="block text-sm mb-1">Choose Title</label>
+                  <select
+                    value={selectedTitle}
+                    onChange={async (e) => {
+                      const newTitle = e.target.value;
+                      setSelectedTitle(newTitle);
+                      await saveUserData('selectedTitle', newTitle);
+                    }}
+                    className="w-full px-2 py-1 rounded bg-gray-800 text-white"
+                  >
+                    {unlockedTitles.map((title, idx) => (
+                      <option key={idx} value={title}>{title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+
               {/* 🔁 Reset Buttons for Distance and Weight */}
               <div className="space-y-2 mt-4">
                 <button

@@ -38,6 +38,9 @@ export default function WorkoutTab() {
   const [showGymModal, setShowGymModal] = useState(false);
   const [workoutStartTime, setWorkoutStartTime] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const lbsRefs = useRef({});
+  const repsRefs = useRef({});
+  const checkRefs = useRef({});
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [showNoteModal, setShowNoteModal] = useState(null);
   const [showRestTimer, setShowRestTimer] = useState(null);
@@ -45,6 +48,8 @@ export default function WorkoutTab() {
   const [restDurations, setRestDurations] = useState(() => {
     const saved = localStorage.getItem('exerciseRestDurations');
     return saved ? JSON.parse(saved) : {};
+
+
 
     
     
@@ -470,9 +475,12 @@ const finishWorkout = async () => {
   
 
   try {
-    const contextPrompt = topCardio.distance > 0
-      ? `Tell me a fun, gaming themed, movie themed, or silly fact about running ${topCardio.distance} miles.`
-      : `Tell me a fun, gaming themed, movie themed, or silly fact about lifting ${totalWeight} pounds.`;
+    const isOnlyCardio = selectedExercises.every(ex => !ex.sets?.some(set => parseFloat(set.weight || 0) > 0));
+
+    const contextPrompt = isOnlyCardio
+      ? `Give me a fun, health or fitness related fact about running or walking ${topCardio.distance} miles. Try to include things relevant to the gym, real-world athletes, or well-known fitness influencers.`
+      : `Give me a fun, health or fitness related fact about lifting ${totalWeight} pounds. Include strength athletes, bodybuilders, or major gym accomplishments if possible.`;
+    
   
     const funFactRes = await fetch(
       import.meta.env.DEV
@@ -488,15 +496,27 @@ const finishWorkout = async () => {
     const json = await funFactRes.json();
     const fact = json.fact || '';
   
-  
+    const formattedExercises = selectedExercises.map(ex => {
+      const sets = ex.sets || [];
+      const maxPR = Math.max(...sets.map(s => (parseFloat(s.weight || 0) * parseInt(s.reps || 0))));
+      const setsWithPR = sets.map(s => ({
+        ...s,
+        isPR: (parseFloat(s.weight || 0) * parseInt(s.reps || 0)) === maxPR
+      }));
+      return { ...ex, sets: setsWithPR };
+    });
+    
+
     setSummaryData({
       name: completedWorkout.name,
       date: new Date().toLocaleDateString(),
       totalWeight,
       topSets,
       topCardio,
+      exercises: formattedExercises, // ✅ add this line
       funFact: fact
     });
+    
   } catch (err) {
     console.error('Fun fact fetch failed', err);
     setSummaryData({
@@ -509,13 +529,35 @@ const finishWorkout = async () => {
     });
   }
   
+  const postContentLines = [
+    `🏋️ ${completedWorkout.name} (${new Date().toLocaleDateString()})`,
+    `🔥 Total Weight: ${totalWeight.toLocaleString()} lbs`,
+  ];
+  
+  if (topCardio?.distance > 0) {
+    postContentLines.push(`📏 Distance: ${topCardio.distance.toFixed(2)} mi`);
+  }
+  
+  if (topSets?.length > 0) {
+    postContentLines.push(`🥇 Top Sets:`);
+    topSets.forEach(set => {
+      postContentLines.push(`• ${set.name} – ${set.weight} × ${set.reps}`);
+    });
+  }
+  
+  postContentLines.push(`💡 Iron Insight: ${fact}`);
+  
+  const fullPostContent = postContentLines.join('\n');
+  
   await firebaseAddDoc(firebaseCollection(db, 'posts'), {
     userId: user.uid,
-    content: `🏋️ "${completedWorkout.name}" complete!\n• Total Weight: ${totalWeight.toLocaleString()} lbs\n• Distance: ${totalDistance.toFixed(2)} mi\nKeep pushing! 🔥`,
+    content: fullPostContent,
     timestamp: Date.now(),
     reactions: {},
     deleted: false,
   });
+  
+  
   
   
 
@@ -827,119 +869,121 @@ ${workout.exercises.map(ex => {
 
         {/* 🔄 Loop through sets within this exercise */}
         {(exercise.sets || []).map((set, setIdx) => (
-          <div key={setIdx} className="flex items-center gap-2 mb-2">
-            {/* 🔖 Tag button (Set #, WU, DS, F) */}
-            <div className="relative w-14">
+  <div key={setIdx} className="flex items-center gap-2 mb-2">
+    {/* 🔖 Set tag button */}
+    <div className="relative w-14">
+      <button
+        onClick={() => setActiveSetTag({ exerciseIdx, setIdx })}
+        className="text-sm text-gray-400 text-left w-full"
+      >
+        {set.tag === 'Warm-Up'
+          ? 'WU'
+          : set.tag === 'Drop Set'
+          ? 'DS'
+          : set.tag === 'Failure'
+          ? 'F'
+          : `Set ${getWorkingSetNumber(exercise.sets, setIdx)}`}
+      </button>
+
+      {/* 🏷️ Tag selector dropdown */}
+      {activeSetTag &&
+        activeSetTag.exerciseIdx === exerciseIdx &&
+        activeSetTag.setIdx === setIdx && (
+          <div className="absolute left-0 top-6 bg-gray-800 border border-gray-700 p-2 rounded shadow z-30 w-32">
+            {['Warm-Up', 'Drop Set', 'Failure', ''].map((tagOption) => (
               <button
-                onClick={() => setActiveSetTag({ exerciseIdx, setIdx })}
-                className="text-sm text-gray-400 text-left w-full"
+                key={tagOption || 'None'}
+                onClick={() => {
+                  updateSetValue(exerciseIdx, setIdx, 'tag', tagOption);
+                  setActiveSetTag(null);
+                }}
+                className="block w-full text-left text-sm py-1 hover:bg-gray-700 text-white"
               >
-                {set.tag === 'Warm-Up'
-                  ? 'WU'
-                  : set.tag === 'Drop Set'
-                  ? 'DS'
-                  : set.tag === 'Failure'
-                  ? 'F'
-                  : `Set ${getWorkingSetNumber(exercise.sets, setIdx)}`}
+                {tagOption || 'None'}
               </button>
+            ))}
+          </div>
+        )}
+    </div>
 
-              {/* 🏷️ Tag selector dropdown */}
-              {activeSetTag &&
-                activeSetTag.exerciseIdx === exerciseIdx &&
-                activeSetTag.setIdx === setIdx && (
-                  <div className="absolute left-0 top-6 bg-gray-800 border border-gray-700 p-2 rounded shadow z-30 w-32">
-                    {['Warm-Up', 'Drop Set', 'Failure', ''].map((tagOption) => (
-                      <button
-                        key={tagOption || 'None'}
-                        onClick={() => {
-                          updateSetValue(exerciseIdx, setIdx, 'tag', tagOption);
-                          setActiveSetTag(null);
-                        }}
-                        className="block w-full text-left text-sm py-1 hover:bg-gray-700 text-white"
-                      >
-                        {tagOption || 'None'}
-                      </button>
-                    ))}
-                  </div>
-                )}
-            </div>
-            {/*  👟 Conditional input fields depending on cardio or strength exercise */}
-{cardioExercises.includes(exercise.name) ? (
-  // 🏃 If this is a cardio exercise, show Distance + Time inputs
-  <>
+    {/* LBS */}
     <input
-      type="text"
-      placeholder="Distance (mi/km)"
-      value={set.distance || ''}
-      onChange={(e) =>
-        updateSetValue(exerciseIdx, setIdx, 'distance', e.target.value)
-      }
-      className="bg-gray-700 rounded px-2 py-1 text-sm w-24"
+      ref={(el) => (lbsRefs.current[`${exerciseIdx}-${setIdx}`] = el)}
+      type="number"
+      placeholder={(() => {
+        const last = JSON.parse(localStorage.getItem('lastUsedSets') || '{}')[exercise.name]?.[setIdx];
+        return last?.weight ? `${last.weight} lbs` : 'lbs';
+      })()}
+      value={set.weight}
+      onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'weight', e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') repsRefs.current[`${exerciseIdx}-${setIdx}`]?.focus();
+      }}
+      className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
     />
+
+    {/* REPS */}
     <input
-      type="text"
-      placeholder="Time (min)"
-      value={set.time || ''}
-      onChange={(e) =>
-        updateSetValue(exerciseIdx, setIdx, 'time', e.target.value)
-      }
-      className="bg-gray-700 rounded px-2 py-1 text-sm w-24"
+      ref={(el) => (repsRefs.current[`${exerciseIdx}-${setIdx}`] = el)}
+      type="number"
+      placeholder={(() => {
+        const last = JSON.parse(localStorage.getItem('lastUsedSets') || '{}')[exercise.name]?.[setIdx];
+        return last?.reps ? `${last.reps} reps` : 'reps';
+      })()}
+      value={set.reps}
+      onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'reps', e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') checkRefs.current[`${exerciseIdx}-${setIdx}`]?.click();
+      }}
+      className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
     />
-  </>
-) : (
-  // 🏋️ If strength training, show Weight + Reps inputs
-  <>
-    {/* LBS input with last used as placeholder */}
-<input
-  type="number"
-  placeholder={
-    (() => {
-      const last = JSON.parse(localStorage.getItem('lastUsedSets') || '{}')[exercise.name]?.[setIdx];
-      return last?.weight ? ` ${last.weight} lbs` : 'lbs';
-    })()
-  }
-  value={set.weight}
-  onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'weight', e.target.value)}
-  className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
-/>
 
-{/* REPS input with last used as placeholder */}
-<input
-  type="number"
-  placeholder={
-    (() => {
-      const last = JSON.parse(localStorage.getItem('lastUsedSets') || '{}')[exercise.name]?.[setIdx];
-      return last?.reps ? ` ${last.reps} reps` : 'reps';
-    })()
-  }
-  value={set.reps}
-  onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'reps', e.target.value)}
-  className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
-/>
+    {/* ✅ Check */}
+    <button
+      ref={(el) => (checkRefs.current[`${exerciseIdx}-${setIdx}`] = el)}
+      onClick={() => toggleComplete(exerciseIdx, setIdx)}
+      className={`text-lg px-3 py-1 rounded font-bold ${
+        set.completed ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-300'
+      }`}
+    >
+      ✔
+    </button>
 
-
-  </>
-)}
-
-{/* ✅ Complete set toggle */}
-<button
-  onClick={() => toggleComplete(exerciseIdx, setIdx)}
-  className={`text-lg px-3 py-1 rounded font-bold ${
-    set.completed ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-300'
-  }`}
->
-  ✔
-</button>
-
-{/* ❌ Remove set */}
-<button
-  onClick={() => removeSet(exerciseIdx, setIdx)}
-  className="text-red-400 text-lg px-2"
->
-  ✖
-</button>
-</div>
+    {/* Cardio Inputs or Delete Button */}
+    {cardioExercises.includes(exercise.name) ? (
+      <>
+        <input
+          type="text"
+          placeholder="Distance (mi/km)"
+          value={set.distance || ''}
+          onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'distance', e.target.value)}
+          className="bg-gray-700 rounded px-2 py-1 text-sm w-24"
+        />
+        <input
+          type="text"
+          placeholder="Time (min)"
+          value={set.time || ''}
+          onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'time', e.target.value)}
+          className="bg-gray-700 rounded px-2 py-1 text-sm w-24"
+        />
+        <button
+          onClick={() => removeSet(exerciseIdx, setIdx)}
+          className="text-red-400 text-lg px-2"
+        >
+          ✖
+        </button>
+      </>
+    ) : (
+      <button
+        onClick={() => removeSet(exerciseIdx, setIdx)}
+        className="text-red-400 text-lg px-2"
+      >
+        ✖
+      </button>
+    )}
+  </div>
 ))}
+
 
 {/* ➕ Add a new set to this exercise */}
 <button

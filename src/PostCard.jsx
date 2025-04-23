@@ -18,6 +18,8 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
   const [commentCount, setCommentCount] = useState(0);
   const optionsRef = useRef();
   const [hideInDiscovery, setHideInDiscovery] = useState(false);
+  const [userTitle, setUserTitle] = useState('');
+
 
 
 
@@ -29,7 +31,9 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
         const data = snap.data();
         setUsername(data.name || 'User');
         setProfilePic(data.profilePic || '/default-avatar.png');
+        setUserTitle(data.selectedTitle || '');
       }
+      
     };
     fetchUser();
   }, [post.userId]);
@@ -102,7 +106,15 @@ if (hideInDiscovery) return null;
             className="w-10 h-10 rounded-full object-cover border border-gray-600 cursor-pointer"
           />
           <div className="text-lg font-extrabold text-white flex items-center gap-2">
-  {username}
+
+          <>
+            {username}
+            {userTitle && (
+              <span className="ml-1 text-yellow-400 text-sm font-semibold">{userTitle}</span>
+            )}
+          </>
+
+
   {showFollowOption && !following.includes(post.userId) && post.userId !== currentUserId && (
     <button
       onClick={async () => {
