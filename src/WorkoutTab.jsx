@@ -525,9 +525,11 @@ const finishWorkout = async () => {
       totalWeight,
       topSets,
       topCardio,
+      exercises: formattedExercises,
       funFact: 'No fact this time!'
     });
   }
+  
   
   const postContentLines = [
     `🏋️ ${completedWorkout.name} (${new Date().toLocaleDateString()})`,
