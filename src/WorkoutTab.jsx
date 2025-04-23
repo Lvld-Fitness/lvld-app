@@ -393,11 +393,9 @@ const calculateDistanceByType = (exercises) => {
 };
 
 
-// Finished the workout session and Stores information + Workout Summary Highlights and Ai fact
 const finishWorkout = async () => {
   const totalWeight = calculateTotalWeight(selectedExercises);
   const distanceByType = calculateDistanceByType(selectedExercises);
-
 
   const cardioSets = selectedExercises
     .filter(e => cardioExercises.includes(e.name))
@@ -416,19 +414,11 @@ const finishWorkout = async () => {
     .sort((a, b) => (parseFloat(b.weight) * parseInt(b.reps)) - (parseFloat(a.weight) * parseInt(a.reps)))
     .slice(0, 3);
 
-    const formattedExercises = selectedExercises.map(ex => ({
-      ...ex,
-      sets: ex.sets.map(set => ({
-        ...set,
-      }))      
-    }));
-    
-
   const completedWorkout = {
     name: workoutName || `Workout - ${new Date().toLocaleDateString()}`,
     timestamp: Date.now(),
     duration: elapsedTime,
-    exercises: formattedExercises,
+    exercises: selectedExercises,
     totalWeight,
   };
 
@@ -449,20 +439,15 @@ const finishWorkout = async () => {
     const userRef = doc(db, 'users', user.uid);
     const userSnap = await getDoc(userRef);
     const userData = userSnap.exists() ? userSnap.data() : {};
-  
+
     let lastWorkoutDate = userData.lastWorkoutDate ? new Date(userData.lastWorkoutDate) : null;
     let newStreak = userData.workoutStreak || 0;
-  
+
     const today = new Date();
     const dayDiff = lastWorkoutDate ? Math.floor((today - lastWorkoutDate) / (1000 * 60 * 60 * 24)) : null;
-  
-    // Reset streak if more than 7 days since last workout
-    if (dayDiff !== null && dayDiff > 7) {
-      newStreak = 0;
-    }
-  
+    if (dayDiff !== null && dayDiff > 7) newStreak = 0;
     newStreak += 1;
-  
+
     await updateDoc(userRef, {
       workoutHistory: updatedHistory,
       totalDistanceByType: distanceByType,
@@ -472,16 +457,14 @@ const finishWorkout = async () => {
       workoutStreak: newStreak,
     });
   }
-  
 
+  let fact = 'No fact this time!';
   try {
     const isOnlyCardio = selectedExercises.every(ex => !ex.sets?.some(set => parseFloat(set.weight || 0) > 0));
-
     const contextPrompt = isOnlyCardio
       ? `Give me a fun, health or fitness related fact about running or walking ${topCardio.distance} miles. Try to include things relevant to the gym, real-world athletes, or well-known fitness influencers.`
       : `Give me a fun, health or fitness related fact about lifting ${totalWeight} pounds. Include strength athletes, bodybuilders, or major gym accomplishments if possible.`;
-    
-  
+
     const funFactRes = await fetch(
       import.meta.env.DEV
         ? 'http://localhost:3000/api/getFunFact'
@@ -492,88 +475,65 @@ const finishWorkout = async () => {
         body: JSON.stringify({ prompt: contextPrompt })
       }
     );
-  
-    const json = await funFactRes.json();
-    const fact = json.fact || '';
-  
-    const formattedExercises = selectedExercises.map(ex => {
-      const sets = ex.sets || [];
-      const maxPR = Math.max(...sets.map(s => (parseFloat(s.weight || 0) * parseInt(s.reps || 0))));
-      const setsWithPR = sets.map(s => ({
-        ...s,
-        isPR: (parseFloat(s.weight || 0) * parseInt(s.reps || 0)) === maxPR
-      }));
-      return { ...ex, sets: setsWithPR };
-    });
-    
 
-    setSummaryData({
-      name: completedWorkout.name,
-      date: new Date().toLocaleDateString(),
-      totalWeight,
-      topSets,
-      topCardio,
-      exercises: formattedExercises, // ✅ add this line
-      funFact: fact
-    });
-    
+    const json = await funFactRes.json();
+    fact = json.fact || fact;
   } catch (err) {
     console.error('Fun fact fetch failed', err);
-    setSummaryData({
-      name: completedWorkout.name,
-      date: new Date().toLocaleDateString(),
-      totalWeight,
-      topSets,
-      topCardio,
-      exercises: formattedExercises,
-      funFact: 'No fact this time!'
-    });
   }
-  
-  
+
+  const formattedExercises = selectedExercises.map(ex => {
+    const sets = ex.sets || [];
+    const maxPR = Math.max(...sets.map(s => (parseFloat(s.weight || 0) * parseInt(s.reps || 0))));
+    const setsWithPR = sets.map(s => ({
+      ...s,
+      isPR: (parseFloat(s.weight || 0) * parseInt(s.reps || 0)) === maxPR
+    }));
+    return { ...ex, sets: setsWithPR };
+  });
+
+  setSummaryData({
+    name: completedWorkout.name,
+    date: new Date().toLocaleDateString(),
+    totalWeight,
+    topSets,
+    topCardio,
+    exercises: formattedExercises,
+    funFact: fact
+  });
+
   const postContentLines = [
     `🏋️ ${completedWorkout.name} (${new Date().toLocaleDateString()})`,
     `🔥 Total Weight: ${totalWeight.toLocaleString()} lbs`,
   ];
-  
   if (topCardio?.distance > 0) {
     postContentLines.push(`📏 Distance: ${topCardio.distance.toFixed(2)} mi`);
   }
-  
   if (topSets?.length > 0) {
     postContentLines.push(`🥇 Top Sets:`);
     topSets.forEach(set => {
-      postContentLines.push(`• ${set.name} – ${set.weight} × ${set.reps}`);
+      postContentLines.push(`• ${set.name || 'Set'} – ${set.weight} × ${set.reps}`);
     });
   }
-  
   postContentLines.push(`💡 Iron Insight: ${fact}`);
-  
-  const fullPostContent = postContentLines.join('\n');
-  
+
   await firebaseAddDoc(firebaseCollection(db, 'posts'), {
     userId: user.uid,
-    content: fullPostContent,
+    content: postContentLines.join('\n'),
     timestamp: Date.now(),
     reactions: {},
     deleted: false,
   });
-  
-  
-  
-  
 
   setShowWorkoutSummary(true);
-
-  // Reset state
   setSelectedExercises([]);
   setWorkoutName('');
   setWorkoutStartTime(null);
   localStorage.removeItem('activeWorkout');
   localStorage.removeItem('workoutStartTime');
   localStorage.removeItem('currentWorkoutName');
-
 };
+
 
 
 
