@@ -542,6 +542,18 @@ const finishWorkout = async () => {
     `🔥 Total Weight: ${totalWeight.toLocaleString()} lbs`,
   ];
   
+  // Add full workout breakdown
+  selectedExercises.forEach((ex) => {
+    postContentLines.push(`\n${ex.name}`);
+    ex.sets.forEach((set) => {
+      if (set.weight && set.reps) {
+        postContentLines.push(`• ${set.weight} lbs × ${set.reps} reps`);
+      } else if (set.distance && set.time) {
+        postContentLines.push(`• ${set.distance} mi in ${set.time} min`);
+      }
+    });
+  });
+  
   await firebaseAddDoc(firebaseCollection(db, 'posts'), {
     userId: user.uid,
     content: postContentLines.join('\n'),

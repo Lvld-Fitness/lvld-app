@@ -58,19 +58,26 @@ export default function ExercisePickerModal({
   const handleAddToWorkout = () => {
     const newExercises = highlighted
       .filter((name) => !selectedExercises.some((ex) => ex.name === name))
-      .map((name) => ({
-        name,
-        sets: [
-          { id: 1, weight: '', reps: '', completed: false },
-          { id: 2, weight: '', reps: '', completed: false },
-          { id: 3, weight: '', reps: '', completed: false },
-        ],
-      }));
+      .map((name) => {
+        const isCardio = name.toLowerCase().includes('run') || name.toLowerCase().includes('bike') || name.toLowerCase().includes('row') || name.toLowerCase().includes('walk') || name.toLowerCase().includes('sprint') || name.toLowerCase().includes('elliptical') || name.toLowerCase().includes('stairs') || name.toLowerCase().includes('cycle') || name.toLowerCase().includes('carry');
+  
+        return {
+          name,
+          sets: isCardio
+            ? [{ id: 1, distance: '', time: '', completed: false }]
+            : [
+                { id: 1, weight: '', reps: '', completed: false },
+                { id: 2, weight: '', reps: '', completed: false },
+                { id: 3, weight: '', reps: '', completed: false }
+              ]
+        };
+      });
   
     setSelectedExercises([...selectedExercises, ...newExercises]);
-    setHighlighted([]); // Clear selection
-    onClose(); // Close the modal
+    setHighlighted([]);
+    onClose();
   };
+  
   
 
   const handleEdit = (exerciseName) => {
