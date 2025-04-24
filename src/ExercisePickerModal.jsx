@@ -37,9 +37,13 @@ export default function ExercisePickerModal({
         ],
   }));
 
-  const filteredExercises = exerciseList.filter((name) =>
-    name.toLowerCase().includes(search.toLowerCase())
+  const filteredExercises = exerciseList.filter(
+    (name) =>
+      typeof name === 'string' &&
+      name.toLowerCase().includes(search.toLowerCase())
   );
+  
+  
 
   const toggleExercise = (name) => {
     if (highlighted.includes(name)) {
@@ -53,12 +57,7 @@ export default function ExercisePickerModal({
 
   const handleAddToWorkout = () => {
     const newExercises = highlighted
-      .filter(
-        (name) =>
-          !selectedExercises.some(
-            (ex) => ex.name === name && !highlighted.includes(name)
-          )
-      )
+      .filter((name) => !selectedExercises.some((ex) => ex.name === name))
       .map((name) => ({
         name,
         sets: [
@@ -67,11 +66,12 @@ export default function ExercisePickerModal({
           { id: 3, weight: '', reps: '', completed: false },
         ],
       }));
-
-    setSelectedExercises(newExercises);
+  
+    setSelectedExercises([...selectedExercises, ...newExercises]);
     setHighlighted([]); // Clear selection
     onClose(); // Close the modal
   };
+  
 
   const handleEdit = (exerciseName) => {
     const newName = prompt('Rename exercise:', exerciseName);

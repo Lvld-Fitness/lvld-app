@@ -427,6 +427,9 @@ const finishWorkout = async () => {
   const user = auth.currentUser;
   if (user) {
     const userRef = doc(db, 'users', user.uid);
+    const userSnap = await getDoc(userRef);
+    const userData = userSnap.exists() ? userSnap.data() : {};
+
   
     await updateDoc(userRef, {
       workoutHistory: updatedHistory,
@@ -791,6 +794,7 @@ ${workout.exercises.map(ex => {
         <div className="flex justify-between items-center mb-2">
           <h3 className="font-bold text-lg">{exercise.name}</h3>
 
+
           {/* ✏️ Show note if added */}
           {exercise.note && (
             <p className="text-sm text-yellow-300 mt-1 italic">{exercise.note}</p>
@@ -809,12 +813,19 @@ ${workout.exercises.map(ex => {
           {/* 📋 Options popup for this exercise */}
           {optionsOpen === exerciseIdx && (
             <div className="absolute right-4 top-10 bg-gray-900 border border-gray-700 p-2 rounded shadow z-10">
+            <button
+              onClick={() => window.open(exercise.videoUrl, '_blank')}
+              className="block w-full text-left text-sm text-green-300 hover:text-green-400 mt-1"
+              title="How to do this exercise"
+            >
+            📹 Video
+            </button>
               <button
                 onClick={() => {
                   setShowNoteModal(exerciseIdx);
                   setOptionsOpen(null);
                 }}
-                className="block w-full text-left text-sm text-yellow-300 hover:text-yellow-400"
+                className="block w-full text-left text-sm text-yellow-300 hover:text-yellow-400 mt-1"
               >
                 📝 Add Notes
               </button>
