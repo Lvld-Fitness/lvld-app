@@ -542,6 +542,11 @@ const finishWorkout = async () => {
     `🔥 Total Weight: ${totalWeight.toLocaleString()} lbs`,
   ];
   
+  if (topCardio?.distance > 0) {
+    postContentLines.push(`📏 Distance: ${topCardio.distance.toFixed(2)} mi`);
+  }
+  
+  
   // Add full workout breakdown
   selectedExercises.forEach((ex) => {
     postContentLines.push(`\n${ex.name}`);
@@ -560,7 +565,11 @@ const finishWorkout = async () => {
     timestamp: serverTimestamp(),
     reactions: {},
     deleted: false,
+    type: 'workout', // ← mark this as a workout post
+    exercises: formattedExercises // used by PostCard dropdown
   });
+  
+  
 
   setSummaryData({
     name: completedWorkout.name,
@@ -915,6 +924,9 @@ ${workout.exercises.map(ex => {
         )}
     </div>
 
+
+{!cardioExercises.includes(exercise.name) && (
+  <>
     {/* LBS */}
     <input
       ref={(el) => (lbsRefs.current[`${exerciseIdx}-${setIdx}`] = el)}
@@ -946,6 +958,8 @@ ${workout.exercises.map(ex => {
       }}
       className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
     />
+  </>
+)}
 
     {/* ✅ Check */}
     <button

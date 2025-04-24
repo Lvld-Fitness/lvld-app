@@ -59,7 +59,7 @@ export default function ExercisePickerModal({
     const newExercises = highlighted
       .filter((name) => !selectedExercises.some((ex) => ex.name === name))
       .map((name) => {
-        const isCardio = name.toLowerCase().includes('run') || name.toLowerCase().includes('bike') || name.toLowerCase().includes('row') || name.toLowerCase().includes('walk') || name.toLowerCase().includes('sprint') || name.toLowerCase().includes('elliptical') || name.toLowerCase().includes('stairs') || name.toLowerCase().includes('cycle') || name.toLowerCase().includes('carry');
+        const isCardio = name.toLowerCase().includes('run') || name.toLowerCase().includes('bike') || name.toLowerCase().includes('treadmill') || name.toLowerCase().includes('row') || name.toLowerCase().includes('walk') || name.toLowerCase().includes('sprint') || name.toLowerCase().includes('elliptical') || name.toLowerCase().includes('stairs') || name.toLowerCase().includes('cycle') || name.toLowerCase().includes('carry');
   
         return {
           name,

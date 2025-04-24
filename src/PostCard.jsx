@@ -8,6 +8,8 @@ import CommentSection from './CommentSection';
 
 
 
+
+
 export default function PostCard({ post, showFollowOption = false, currentUserId, following = [] }) {
   const [username, setUsername] = useState('User');
   const [profilePic, setProfilePic] = useState('/default-avatar.png');
@@ -19,7 +21,7 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
   const optionsRef = useRef();
   const [hideInDiscovery, setHideInDiscovery] = useState(false);
   const [userTitle, setUserTitle] = useState('');
-
+  const [showFullWorkout, setShowFullWorkout] = useState(false);
 
 
 
@@ -198,6 +200,36 @@ if (hideInDiscovery) return null;
   </div>
 )}
 
+{/* {post.exercises?.length > 0 && (
+  <div className="mb-2">
+    <button
+      onClick={() => setShowFullWorkout(!showFullWorkout)}
+      className="text-sm text-blue-400 hover:text-blue-500 font-bold mb-1"
+    >
+      {showFullWorkout ? 'Hide Full Workout ▲' : 'View Full Workout ▼'}
+    </button>
+
+    {showFullWorkout && (
+      <div className="bg-gray-900 p-3 rounded border border-gray-700 mt-2">
+        {post.exercises.map((ex, i) => (
+          <div key={i} className="mb-2">
+            <p className="text-yellow-300 font-semibold">{ex.name}</p>
+            <ul className="ml-4 text-sm text-gray-300">
+              {ex.sets.map((set, j) => (
+                <li key={j}>
+                  {set.weight !== undefined
+                    ? `${set.weight} lbs × ${set.reps} reps`
+                    : `${set.distance || 0} mi in ${set.time || 0} min`}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
+  */}
 
 
       <p className="text-white mb-2 whitespace-pre-line">{post.content}</p>
