@@ -34,6 +34,7 @@ import { differenceInCalendarDays } from 'date-fns'; // install with: npm i date
 
 // 🔽 WorkoutTab Component Starts
 export default function WorkoutTab() {
+  let userData = {};
   // 🧠 State Variables for UI and Data
   const [selectedExercises, setSelectedExercises] = useState([]);
   const [showPicker, setShowPicker] = useState(false);
@@ -388,6 +389,21 @@ const calculateDistanceByType = (exercises) => {
 const finishWorkout = async () => {
   const totalWeight = calculateTotalWeight(selectedExercises);
   const distanceByType = calculateDistanceByType(selectedExercises);
+  let userData = {};
+
+  if (userRef) {
+    const userSnap = await getDoc(userRef);
+    userData = userSnap.exists() ? userSnap.data() : {};
+  
+    await updateDoc(userRef, {
+      workoutHistory: updatedHistory,
+      totalDistanceByType: distanceByType,
+      totalWeight,
+      totalDistance,
+      workoutStreak: updatedHistory.length,
+      lastWorkoutDate: new Date().toISOString()
+    });
+  }
 
   const cardioSets = selectedExercises
     .filter(e => cardioExercises.includes(e.name))
@@ -429,7 +445,6 @@ const finishWorkout = async () => {
   const user = auth.currentUser;
   const userRef = user ? doc(db, 'users', user.uid) : null;
   
-  let userData = {};
   
   if (userRef) {
     const userSnap = await getDoc(userRef);
