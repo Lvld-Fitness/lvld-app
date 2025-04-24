@@ -76,6 +76,8 @@ export default function WorkoutTab() {
   const [pendingRestTrigger, setPendingRestTrigger] = useState(false);
   const [showWorkoutSummary, setShowWorkoutSummary] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
+  // ✅ safe to use now
+  const unlocked = new Set(userData.unlockedTitles || []);
   const [distanceByType, setDistanceByType] = useState({
     Walking: 0,
     Running: 0,
@@ -425,21 +427,25 @@ const finishWorkout = async () => {
   localStorage.setItem('workoutHistory', JSON.stringify(updatedHistory));
 
   const user = auth.currentUser;
-  if (user) {
-    const userRef = doc(db, 'users', user.uid);
+  const userRef = user ? doc(db, 'users', user.uid) : null;
+  
+  let userData = {};
+  
+  if (userRef) {
     const userSnap = await getDoc(userRef);
-    const userData = userSnap.exists() ? userSnap.data() : {};
-
+    userData = userSnap.exists() ? userSnap.data() : {};
   
     await updateDoc(userRef, {
       workoutHistory: updatedHistory,
       totalDistanceByType: distanceByType,
       totalWeight,
       totalDistance,
-      workoutStreak: updatedHistory.length, // ✅ shows total workouts completed
+      workoutStreak: updatedHistory.length,
       lastWorkoutDate: new Date().toISOString()
     });
   }
+  
+
   
 
   let fact = 'No fact this time!';
