@@ -41,6 +41,8 @@ export default function ProfileTab() {
   const [notifications, setNotifications] = useState([]);
   const [selectedTitle, setSelectedTitle] = useState('');
   const [unlockedTitles, setUnlockedTitles] = useState([]);
+  const [workoutStreak, setWorkoutStreak] = useState(0);
+
 
 
 useEffect(() => {
@@ -100,6 +102,7 @@ useEffect(() => {
       setProfilePic(data.profilePic !== undefined ? data.profilePic : '/default-avatar.png');
       setTotalWeight(data.totalWeight || 0);
       setTotalDistance(data.totalDistance || 0);
+      setWorkoutStreak((data.workoutHistory || []).length);
       if (data.totalDistanceByType) {
         setDistanceByType(data.totalDistanceByType);
       }      
@@ -109,8 +112,8 @@ useEffect(() => {
         setLastWorkoutWeight(last.totalWeight || 0);
       }
 
-      setSelectedTitle(data.selectedTitle || 'No Titles Unlocked');
-      setUnlockedTitles(data.unlockedTitles || []);
+      setSelectedTitle(data.selectedTitle || '');
+      setUnlockedTitles(data.unlockedTitles || ['Beta Tester']);
 
       
 
@@ -332,9 +335,10 @@ const recalculateDistanceByType = (history) => {
             )}
           </div>
           <div>
-            <p className="text-2xl font-extrabold text-red-500">{weeklyStreak}</p>
-            <p className="text-gray-400 text-xs mt-1">WORKOUT STREAK</p>
+            <p className="text-2xl font-extrabold text-red-500">{workoutStreak}</p>
+            <p className="text-gray-400 text-xs mt-1">WORKOUTS COMPLETED</p>
           </div>
+
           <div>
             <p className="text-2xl font-extrabold text-white">Level {level}</p>
             <p className="text-gray-400 text-xs mt-1">ACCOUNT LEVEL</p>

@@ -11,6 +11,8 @@ export default function PublicProfile() {
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState([]);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [selectedTitle, setSelectedTitle] = useState('');
+
 
   const currentUser = auth.currentUser;
 
@@ -20,7 +22,10 @@ export default function PublicProfile() {
       const snap = await getDoc(doc(db, 'users', uid));
       if (snap.exists()) {
         console.log('✅ User data found:', snap.data());
-        setData(snap.data());
+        const userData = snap.data();
+        setData(userData);
+        setSelectedTitle(userData.selectedTitle || '');
+
       } else {
         console.log('❌ No user found for UID:', uid);
       }
@@ -83,6 +88,9 @@ export default function PublicProfile() {
       <div className="flex flex-col items-center">
         <img src={data.profilePic || '/default-avatar.png'} className="w-28 h-28 rounded-full border-4 border-gray-700 object-cover" alt="avatar" />
         <h1 className="text-3xl font-bold mt-4">{data.name}</h1>
+        {selectedTitle && (
+          <p className="text-yellow-400 font-bold text-md">{selectedTitle}</p>
+        )}
         <p className="text-lg text-red-400">{data.handle}</p>
         <p className="text-center text-gray-300 max-w-md mt-2">{data.bio || 'This user has no bio.'}</p>
 
