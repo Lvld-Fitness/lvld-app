@@ -10,7 +10,7 @@ import RestTimerModal from './RestTimerModal';
 import RestFloatingTimer from './RestFloatingTimer';
 import GymScanModal from './GymScanModal_LocalV9';
 import WorkoutSummaryPopup from './WorkoutSummaryPopup';
-import { TITLE_ACHIEVEMENTS } from './titleCriteria';
+import { TITLE_ACHIEVEMENTS } from './titleCriteria'; // 🏷️ Title unlock rules
 
 
 
@@ -28,13 +28,12 @@ import './WorkoutCalendarStyles.css';
 
 // 🔥 Firebase Imports
 import { db, auth } from './firebase';
-import { doc, getDoc, setDoc, updateDoc, addDoc as firebaseAddDoc, collection as firebaseCollection, arrayUnion, serverTimestamp  } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, addDoc as firebaseAddDoc, collection as firebaseCollection, arrayUnion, serverTimestamp, } from 'firebase/firestore';
 import { differenceInCalendarDays } from 'date-fns'; // install with: npm i date-fns
 
 
 // 🔽 WorkoutTab Component Starts
 export default function WorkoutTab() {
-  let userData = {};
   // 🧠 State Variables for UI and Data
   const [selectedExercises, setSelectedExercises] = useState([]);
   const [showPicker, setShowPicker] = useState(false);
@@ -77,8 +76,6 @@ export default function WorkoutTab() {
   const [pendingRestTrigger, setPendingRestTrigger] = useState(false);
   const [showWorkoutSummary, setShowWorkoutSummary] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
-  // ✅ safe to use now
-  const unlocked = new Set(userData.unlockedTitles || []);
   const [distanceByType, setDistanceByType] = useState({
     Walking: 0,
     Running: 0,
@@ -131,11 +128,23 @@ export default function WorkoutTab() {
     fetchUserData();
   }, [auth.currentUser]);
 
-  // 📅 Completed Workout Totals
-  const calculateTotalWorkouts = (history) => {
-    return history.length;
+  // 📅 Weekly Streak Calculator
+  const calculateWeeklyStreak = (history) => {
+    const now = new Date();
+    const recentDays = new Set();
+
+    history.forEach(workout => {
+      if (workout.timestamp) {
+        const workoutDate = new Date(workout.timestamp);
+        const daysAgo = (now - workoutDate) / (1000 * 60 * 60 * 24);
+        if (daysAgo <= 7) {
+          recentDays.add(workoutDate.toISOString().split('T')[0]);
+        }
+      }
+    });
+
+    return recentDays.size;
   };
-  
 
 // 🔁 Load premade workout from navigation state
 useEffect(() => {
@@ -389,21 +398,6 @@ const calculateDistanceByType = (exercises) => {
 const finishWorkout = async () => {
   const totalWeight = calculateTotalWeight(selectedExercises);
   const distanceByType = calculateDistanceByType(selectedExercises);
-  let userData = {};
-
-  if (userRef) {
-    const userSnap = await getDoc(userRef);
-    userData = userSnap.exists() ? userSnap.data() : {};
-  
-    await updateDoc(userRef, {
-      workoutHistory: updatedHistory,
-      totalDistanceByType: distanceByType,
-      totalWeight,
-      totalDistance,
-      workoutStreak: updatedHistory.length,
-      lastWorkoutDate: new Date().toISOString()
-    });
-  }
 
   const cardioSets = selectedExercises
     .filter(e => cardioExercises.includes(e.name))
@@ -416,19 +410,26 @@ const finishWorkout = async () => {
     return (speed > best.speed) ? { distance, time, speed } : best;
   }, { distance: 0, time: 0, speed: 0 });
 
-  const allSets = selectedExercises.flatMap(e => e.sets || []);
+  const allSets = selectedExercises.flatMap(ex =>
+    (ex.sets || []).map(set => ({ ...set, exerciseName: ex.name }))
+  );
+  
   const topSets = [...allSets]
     .filter(set => parseFloat(set.weight) > 0 && parseInt(set.reps) > 0)
-    .sort((a, b) => (parseFloat(b.weight) * parseInt(b.reps)) - (parseFloat(a.weight) * parseInt(a.reps)))
+    .sort((a, b) =>
+      (parseFloat(b.weight) * parseInt(b.reps)) - (parseFloat(a.weight) * parseInt(a.reps))
+    )
     .slice(0, 3);
+  
 
-  const completedWorkout = {
-    name: workoutName || `Workout - ${new Date().toLocaleDateString()}`,
-    timestamp: Date.now(),
-    duration: elapsedTime,
-    exercises: selectedExercises,
-    totalWeight,
-  };
+    const completedWorkout = {
+      name: workoutName?.trim() || "Today's Workout",
+      timestamp: Date.now(),
+      duration: elapsedTime,
+      exercises: selectedExercises,
+      totalWeight,
+    };
+    
 
   const lastSets = JSON.parse(localStorage.getItem('lastUsedSets') || '{}');
   selectedExercises.forEach(ex => {
@@ -443,32 +444,71 @@ const finishWorkout = async () => {
   localStorage.setItem('workoutHistory', JSON.stringify(updatedHistory));
 
   const user = auth.currentUser;
-  const userRef = user ? doc(db, 'users', user.uid) : null;
-  
-  
-  if (userRef) {
+  if (user) {
+    const userRef = doc(db, 'users', user.uid);
     const userSnap = await getDoc(userRef);
-    userData = userSnap.exists() ? userSnap.data() : {};
-  
+    const userData = userSnap.exists() ? userSnap.data() : {};
+
+    let lastWorkoutDate = userData.lastWorkoutDate ? new Date(userData.lastWorkoutDate) : null;
+    let newStreak = userData.workoutStreak || 0;
+
+    const today = new Date();
+    const dayDiff = lastWorkoutDate ? Math.floor((today - lastWorkoutDate) / (1000 * 60 * 60 * 24)) : null;
+    if (dayDiff !== null && dayDiff > 7) newStreak = 0;
+    newStreak += 1;
+
     await updateDoc(userRef, {
       workoutHistory: updatedHistory,
       totalDistanceByType: distanceByType,
       totalWeight,
       totalDistance,
-      workoutStreak: updatedHistory.length,
-      lastWorkoutDate: new Date().toISOString()
+      lastWorkoutDate: today.toISOString(),
+      workoutStreak: newStreak,
     });
-  }
-  
 
-  
+    // 🔓 Title Achievements Check
+    const unlocked = new Set(userData.unlockedTitles || []);
+    TITLE_ACHIEVEMENTS.forEach(({ title, condition }) => {
+      if (condition({
+        workoutStreak: updatedHistory.length,
+        totalDistance,
+        totalWeight
+      })) {
+        unlocked.add(title);
+      }
+    });
+
+    await updateDoc(userRef, {
+      unlockedTitles: Array.from(unlocked),
+    });
+
+    const newlyUnlocked = TITLE_ACHIEVEMENTS
+      .filter(({ title, condition }) =>
+        condition({
+          workoutStreak: updatedHistory.length,
+          totalDistance,
+          totalWeight
+        }) && !userData.unlockedTitles?.includes(title)
+      )
+      .map(({ title }) => title);
+
+    for (const title of newlyUnlocked) {
+      await firebaseAddDoc(firebaseCollection(db, 'posts'), {
+        userId: 'dKdmdsLKsTY51nFmqHjBWepZgDp2', // LVLD account UID
+        content: `🎉 Congrats @${userData.handle || 'user'} on unlocking the title **"${title}"**!\nKeep grinding! 💪`,
+        timestamp: Date.now(),
+        reactions: {},
+        deleted: false,
+      });
+    }
+  }
 
   let fact = 'No fact this time!';
   try {
     const isOnlyCardio = selectedExercises.every(ex => !ex.sets?.some(set => parseFloat(set.weight || 0) > 0));
     const contextPrompt = isOnlyCardio
       ? `Give me a fun, health or fitness related fact about running or walking ${topCardio.distance} miles. Try to include things relevant to the gym, real-world athletes, or well-known fitness influencers.`
-      : `Give me a fun, health or fitness related fact about lifting ${totalWeight} pounds. Include strength athletes, bodybuilders, or major gym accomplishments if possible.`;
+      : `Give me a fun, health or fitness related fact about lifting ${totalWeight} pounds. Try to include things relevant to the gym, real-world athletes, or well-known fitness influencers.`;
 
     const funFactRes = await fetch(
       import.meta.env.DEV
@@ -497,6 +537,19 @@ const finishWorkout = async () => {
     return { ...ex, sets: setsWithPR };
   });
 
+  const postContentLines = [
+    `🏋️ ${completedWorkout.name} (${new Date().toLocaleDateString()})`,
+    `🔥 Total Weight: ${totalWeight.toLocaleString()} lbs`,
+  ];
+  
+  await firebaseAddDoc(firebaseCollection(db, 'posts'), {
+    userId: user.uid,
+    content: postContentLines.join('\n'),
+    timestamp: serverTimestamp(),
+    reactions: {},
+    deleted: false,
+  });
+
   setSummaryData({
     name: completedWorkout.name,
     date: new Date().toLocaleDateString(),
@@ -507,66 +560,6 @@ const finishWorkout = async () => {
     funFact: fact
   });
 
-  const postContentLines = [
-    `🏋️ ${completedWorkout.name} (${new Date().toLocaleDateString()})`,
-    `🔥 Total Weight: ${totalWeight.toLocaleString()} lbs`,
-  ];
-  if (topCardio?.distance > 0) {
-    postContentLines.push(`📏 Distance: ${topCardio.distance.toFixed(2)} mi`);
-  }
-  if (topSets?.length > 0) {
-    postContentLines.push(`🥇 Top Sets:`);
-    topSets.forEach(set => {
-      postContentLines.push(`• ${set.name || 'Set'} – ${set.weight} × ${set.reps}`);
-    });
-  }
-
-
-
-  await firebaseAddDoc(firebaseCollection(db, 'posts'), {
-    userId: user.uid,
-    content: postContentLines.join('\n'),
-    timestamp: serverTimestamp(), // ✅ use server time to sort correctly
-    reactions: {},
-    deleted: false,
-  });
-  
-
-  //Title Achievements Check
-  const unlocked = new Set(userData.unlockedTitles || []);
-TITLE_ACHIEVEMENTS.forEach(({ title, condition }) => {
-  if (condition({
-    workoutStreak: newStreak,
-    totalDistance,
-    totalWeight
-  })) {
-    unlocked.add(title);
-  }
-});
-
-await updateDoc(userRef, {
-  unlockedTitles: Array.from(unlocked),
-});
-
-const newlyUnlocked = TITLE_ACHIEVEMENTS
-  .filter(({ title, condition }) =>
-    condition({
-      workoutStreak: updatedHistory.length,
-      totalDistance,
-      totalWeight
-    }) && !userData.unlockedTitles?.includes(title)
-  )
-  .map(({ title }) => title);
-
-for (const title of newlyUnlocked) {
-  await firebaseAddDoc(firebaseCollection(db, 'posts'), {
-    userId: 'dKdmdsLKsTY51nFmqHjBWepZgDp2', // 🔁 replace this with actual LVLD UID from Firestore
-    content: `🎉 Congrats @${userData.handle || 'user'} on unlocking the title **"${title}"**!\nKeep grinding! 💪`,
-    timestamp: Date.now(),
-    reactions: {},
-    deleted: false,
-  });
-}
 
 
 
@@ -578,9 +571,6 @@ for (const title of newlyUnlocked) {
   localStorage.removeItem('workoutStartTime');
   localStorage.removeItem('currentWorkoutName');
 };
-
-
-
 
 
 // ❌ Deletes a workout from local state and Firebase by index
@@ -815,7 +805,6 @@ ${workout.exercises.map(ex => {
         <div className="flex justify-between items-center mb-2">
           <h3 className="font-bold text-lg">{exercise.name}</h3>
 
-
           {/* ✏️ Show note if added */}
           {exercise.note && (
             <p className="text-sm text-yellow-300 mt-1 italic">{exercise.note}</p>
@@ -834,19 +823,12 @@ ${workout.exercises.map(ex => {
           {/* 📋 Options popup for this exercise */}
           {optionsOpen === exerciseIdx && (
             <div className="absolute right-4 top-10 bg-gray-900 border border-gray-700 p-2 rounded shadow z-10">
-            <button
-              onClick={() => window.open(exercise.videoUrl, '_blank')}
-              className="block w-full text-left text-sm text-green-300 hover:text-green-400 mt-1"
-              title="How to do this exercise"
-            >
-            📹 Video
-            </button>
               <button
                 onClick={() => {
                   setShowNoteModal(exerciseIdx);
                   setOptionsOpen(null);
                 }}
-                className="block w-full text-left text-sm text-yellow-300 hover:text-yellow-400 mt-1"
+                className="block w-full text-left text-sm text-yellow-300 hover:text-yellow-400"
               >
                 📝 Add Notes
               </button>
