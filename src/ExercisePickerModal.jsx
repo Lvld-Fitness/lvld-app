@@ -56,27 +56,33 @@ export default function ExercisePickerModal({
   };
 
   const handleAddToWorkout = () => {
-    const newExercises = highlighted
-      .filter((name) => !selectedExercises.some((ex) => ex.name === name))
-      .map((name) => {
-        const isCardio = name.toLowerCase().includes('run') || name.toLowerCase().includes('bike') || name.toLowerCase().includes('treadmill') || name.toLowerCase().includes('row') || name.toLowerCase().includes('walk') || name.toLowerCase().includes('sprint') || name.toLowerCase().includes('elliptical') || name.toLowerCase().includes('stairs') || name.toLowerCase().includes('cycle') || name.toLowerCase().includes('carry');
+    const filtered = highlighted.filter(
+      (name) => !selectedExercises.some((ex) => ex.name === name)
+    );
   
-        return {
-          name,
-          sets: isCardio
-            ? [{ id: 1, distance: '', time: '', completed: false }]
-            : [
-                { id: 1, weight: '', reps: '', completed: false },
-                { id: 2, weight: '', reps: '', completed: false },
-                { id: 3, weight: '', reps: '', completed: false }
-              ]
-        };
-      });
+    const newExercises = filtered.map((name) => {
+      const isCardio = name.toLowerCase().includes('run') || name.toLowerCase().includes('bike') || name.toLowerCase().includes('treadmill') || name.toLowerCase().includes('row') || name.toLowerCase().includes('walk') || name.toLowerCase().includes('sprint') || name.toLowerCase().includes('elliptical') || name.toLowerCase().includes('stairs') || name.toLowerCase().includes('cycle') || name.toLowerCase().includes('carry');
   
-    setSelectedExercises([...selectedExercises, ...newExercises]);
+      return {
+        name,
+        sets: isCardio
+          ? [{ id: 1, distance: '', time: '', completed: false }]
+          : [
+              { id: 1, weight: '', reps: '', completed: false },
+              { id: 2, weight: '', reps: '', completed: false },
+              { id: 3, weight: '', reps: '', completed: false }
+            ]
+      };
+    });
+  
+    // ✅ Send back only new exercises
+    setSelectedExercises(newExercises);
     setHighlighted([]);
     onClose();
   };
+  
+  
+  
   
   
 

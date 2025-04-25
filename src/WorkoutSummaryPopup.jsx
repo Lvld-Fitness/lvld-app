@@ -34,17 +34,18 @@ export default function WorkoutSummaryPopup({ summaryData, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex justify-center items-center px-4">
-      <div className="bg-gray-900 text-white p-6 rounded-lg w-full max-w-md shadow-lg border border-red-600 relative">
+      <div className="bg-gray-900 text-white p-6 rounded-lg w-full max-w-md shadow-lg border border-red-600 max-h-[80vh] overflow-y-auto pb-24">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-3xl font-extrabold text-red-500 tracking-wide">WORKOUT COMPLETE</h2>
           <div className="flex items-center gap-3">
           <button onClick={handleShare} className="text-red-400 text-xl hover:text-red-500" title="Share Workout">
             <Export size={24} weight="bold" />
           </button>
-
-            <button onClick={onClose} className="text-red-400 text-xl hover:text-red-500">✖</button>
-          </div>
-        </div>
+              <div className="absolute top-5 right-5 flex gap-3 p-2 bg-black bg-opacity-60 rounded-bl-lg z-50">
+                <button onClick={onClose} className="text-red-400 text-xl hover:text-red-500">✖</button>
+              </div>
+            </div>
+         </div>
 
         <p className="text-center text-gray-400 text-sm italic mb-4">
           {name} • {date}
@@ -59,7 +60,7 @@ export default function WorkoutSummaryPopup({ summaryData, onClose }) {
 
         {funFact && (
           <div className="mt-5 p-3 bg-gray-800 rounded border border-yellow-500">
-            <p className="text-yellow-300 font-semibold mb-1">💡 Iron Insight</p>
+            <p className="text-yellow-300 font-semibold mb-1">💡 Motivational Quote</p>
             <p className="text-sm text-white italic">{funFact}</p>
           </div>
         )}
@@ -73,8 +74,14 @@ export default function WorkoutSummaryPopup({ summaryData, onClose }) {
                 <ul className="ml-3 space-y-1">
                   {ex.sets.map((set, i) => (
                     <li key={i} className={set.isPR ? "text-yellow-400 font-bold" : "text-gray-300"}>
-                      • {set.weight ? `${set.weight} lbs × ${set.reps} reps` : `${set.distance} mi in ${set.time} min`}
-                      {set.isPR && <span className="ml-1 text-red-400">🏆 PR</span>}
+                      • {typeof set.weight === 'number' && set.reps
+                        ? `${set.weight} lbs × ${set.reps} reps`
+                        : set.distance && set.time
+                          ? `${set.distance} mi in ${set.time} min`
+                          : '—'}
+                      {set.isPR && typeof set.weight === 'number' && set.reps && (
+                        <span className="ml-1 text-red-400">🏆 PR</span>
+                      )}
                     </li>
                   ))}
                 </ul>

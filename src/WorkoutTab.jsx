@@ -503,12 +503,11 @@ const finishWorkout = async () => {
     }
   }
 
-  let fact = 'No fact this time!';
+  let fact = 'YOU ARE A BEAST!';
   try {
-    const isOnlyCardio = selectedExercises.every(ex => !ex.sets?.some(set => parseFloat(set.weight || 0) > 0));
     const contextPrompt = isOnlyCardio
-      ? `Give me a fun, health or fitness related fact about running or walking ${topCardio.distance} miles. Try to include things relevant to the gym, real-world athletes, or well-known fitness influencers.`
-      : `Give me a fun, health or fitness related fact about lifting ${totalWeight} pounds. Try to include things relevant to the gym, real-world athletes, or well-known fitness influencers.`;
+    ? `Give me a short, powerful motivational quote for someone who just ran or walked ${topCardio.distance} miles. Avoid repetition. Make it feel like a personal boost for gym lovers. It can be quotes from Fitness icons or one you make up.`
+    : `Give me a short, powerful motivational quote for someone who just lifted a total of ${totalWeight} lbs in the gym. Avoid repetition. Make it feel personal and get them hyped. It can be quotes from Fitness icons or one you make up.`;
 
     const funFactRes = await fetch(
       import.meta.env.DEV
@@ -524,7 +523,7 @@ const finishWorkout = async () => {
     const json = await funFactRes.json();
     fact = json.fact || fact;
   } catch (err) {
-    console.error('Fun fact fetch failed', err);
+    console.error('Quote fetch failed', err);
   }
 
   const formattedExercises = selectedExercises.map(ex => {
