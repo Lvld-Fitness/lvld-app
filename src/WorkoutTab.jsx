@@ -505,6 +505,9 @@ const finishWorkout = async () => {
 
   let fact = 'YOU ARE A BEAST!';
   try {
+    const isOnlyCardio = selectedExercises.every(ex =>
+      !ex.sets?.some(set => parseFloat(set.weight || 0) > 0)
+    );
     const contextPrompt = isOnlyCardio
     ? `Give me a short, powerful motivational quote for someone who just ran or walked ${topCardio.distance} miles. Avoid repetition. Make it feel like a personal boost for gym lovers. It can be quotes from Fitness icons or one you make up.`
     : `Give me a short, powerful motivational quote for someone who just lifted a total of ${totalWeight} lbs in the gym. Avoid repetition. Make it feel personal and get them hyped. It can be quotes from Fitness icons or one you make up.`;

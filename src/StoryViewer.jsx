@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { collection, getDocs, getDoc, deleteDoc, doc, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  getDoc,
+  deleteDoc,
+  doc,
+  query,
+  orderBy,
+  addDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from './firebase';
 import { UploadSimple, Trash, XSquare } from '@phosphor-icons/react';
@@ -22,8 +32,8 @@ export default function StoryViewer() {
       const cutoff = now - 24 * 60 * 60 * 1000;
 
       const validEntries = snap.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(entry => entry.timestamp?.toMillis?.() >= cutoff);
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((entry) => entry.timestamp?.toMillis?.() >= cutoff);
 
       setEntries(validEntries);
     };
@@ -37,19 +47,15 @@ export default function StoryViewer() {
       const snap = await getDoc(ref);
       if (snap.exists()) {
         const data = snap.data();
-        console.log('👤 Poster data loaded:', data); // ✅ debug check
         setPosterInfo({
           name: data.name || 'User',
-          profilePic: data.profilePic || '/default-avatar.png'
+          profilePic: data.profilePic || '/default-avatar.png',
         });
-      } else {
-        console.log('❌ No user found for:', userId);
       }
     };
-  
+
     fetchPoster();
   }, [userId]);
-  
 
   const handleDelete = async () => {
     const entry = entries[activeIndex];
@@ -77,7 +83,8 @@ export default function StoryViewer() {
       await addDoc(entryRef, {
         mediaUrl: url,
         mediaType: type,
-        timestamp: serverTimestamp()
+        timestamp: serverTimestamp(),
+        textOverlay: '', // Optional
       });
 
       setTimeout(() => {
@@ -96,16 +103,19 @@ export default function StoryViewer() {
     const half = window.innerWidth / 2;
     if (e.clientX > half) {
       if (activeIndex < entries.length - 1) {
-        setActiveIndex(prev => prev + 1);
+        setActiveIndex((prev) => prev + 1);
       } else {
         navigate('/feed');
       }
     } else {
       if (activeIndex > 0) {
-        setActiveIndex(prev => prev - 1);
+        setActiveIndex((prev) => prev - 1);
       }
     }
   };
+
+  const entry = entries[activeIndex];
+
   return (
     <div
       onClick={() => navigate('/feed')}
@@ -122,7 +132,7 @@ export default function StoryViewer() {
           <span className="text-white font-semibold text-sm">{posterInfo.name}</span>
         </div>
       )}
-  
+
       {/* Upload/Delete/Close Buttons Top-Right */}
       <div className="absolute top-4 right-4 z-50 flex gap-3" onClick={(e) => e.stopPropagation()}>
         {isOwner && (
@@ -145,31 +155,37 @@ export default function StoryViewer() {
           <XSquare size={24} className="text-white" />
         </button>
       </div>
-  
+
       {/* Story Content */}
       {uploading ? (
         <div className="text-white text-lg">Uploading...</div>
       ) : entries.length > 0 ? (
         <div
-          className="max-w-full max-h-full rounded overflow-hidden shadow-lg w-full h-full flex justify-center items-center"
+          className="max-w-full max-h-full rounded overflow-hidden shadow-lg w-full h-full flex justify-center items-center relative"
           onClick={handleAdvance}
         >
-          {entries[activeIndex].mediaType === 'image' ? (
+          {entry.mediaType === 'image' ? (
             <img
-              src={entries[activeIndex].mediaUrl}
+              src={entry.mediaUrl}
               alt="story"
               className="max-w-full max-h-full object-contain"
             />
           ) : (
             <video
-              src={entries[activeIndex].mediaUrl}
+              src={entry.mediaUrl}
               controls
               autoPlay
               className="max-w-full max-h-full"
             />
           )}
+
+          {entry.textOverlay && (
+            <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-black bg-opacity-50 text-white rounded text-center text-lg font-semibold">
+              {entry.textOverlay}
+            </div>
+          )}
         </div>
       ) : null}
     </div>
   );
-}  
+}
