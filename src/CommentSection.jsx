@@ -203,69 +203,9 @@ export default function CommentSection({ postId }) {
               )}
             </div>
           )}
-             
-
-             <button
-                onClick={() => {
-                  setEditingId(`reply-${c.id}`);
-                  setEditingText(`@${c.userName} `); // 👈 Prefill @username
-                }}
-                className="text-blue-400 ml-2"
-                title="Reply"
-              >
-                <ArrowBendUpLeft size={18} />
-              </button>
-
             </div>
 
-            {editingId === `reply-${c.id}` && (
-              <div className="mt-2 ml-6">
-                <CommentInput onSend={(text) => handleNewReply(c.id, { text })} placeholder="Reply..." />
-              </div>
-            )}
-
-            {/* Replies */}
-            {c.replies?.length > 0 && (
-              <div className="pl-6 mt-3 space-y-2">
-                {c.replies.map((r) => (
-                  <div key={r.id} className="relative">
-                    <div className="flex items-center gap-2">
-                      <img
-                        src={r.userPic}
-                        className="w-5 h-5 rounded-full object-cover cursor-pointer"
-                        onClick={() => navigate(`/profile/${r.userId}`)}
-                      />
-                      <span className="text-sm font-semibold">{r.userName}</span>
-                      {auth.currentUser?.uid === r.userId && (
-                        <div className="relative ml-auto">
-                          <button onClick={() => setEditingId(r.id)}>
-                            <DotsThreeVertical size={14} className="text-gray-400 hover:text-white" />
-                          </button>
-                          {editingId === r.id && (
-                            <div className="absolute right-0 mt-1 bg-gray-900 border border-gray-700 rounded shadow z-50">
-                              <button onClick={() => handleDelete(c.id, r.id)} className="block px-3 py-1 text-sm hover:bg-gray-700 text-red-400 w-full text-left">Delete</button>
-                              <button onClick={() => setEditingText(r.text)} className="block px-3 py-1 text-sm hover:bg-gray-700 text-blue-400 w-full text-left">Edit</button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {editingId === r.id && editingText ? (
-                      <div className="flex flex-col gap-2 mt-1">
-                        <textarea value={editingText} onChange={(e) => setEditingText(e.target.value)} className="w-full p-2 text-sm bg-gray-700 text-white rounded" />
-                        <div className="flex gap-2">
-                          <button onClick={() => handleEdit(c.id, r.id)} className="text-green-400 text-sm hover:underline">Save</button>
-                          <button onClick={() => setEditingId(null)} className="text-red-400 text-sm hover:underline">Cancel</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-300 ml-8 mt-1">{r.text}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+           
           </div>
         ))}
 
