@@ -190,16 +190,32 @@ export default function CommentSection({ postId }) {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm mb-1 flex-1">{c.text}</p>
+                <div className="flex flex-col flex-1">
+                  {c.text && (
+                <p className="text-sm mb-1">{c.text}</p>
               )}
+              {c.media && (
+                <img
+                  src={c.media}
+                  alt="comment media"
+                  className="mt-2 rounded-lg max-h-60 object-contain"
+                />
+              )}
+            </div>
+          )}
+             
 
-              <button
-                onClick={() => setEditingId(`reply-${c.id}`)}
+             <button
+                onClick={() => {
+                  setEditingId(`reply-${c.id}`);
+                  setEditingText(`@${c.userName} `); // 👈 Prefill @username
+                }}
                 className="text-blue-400 ml-2"
                 title="Reply"
               >
                 <ArrowBendUpLeft size={18} />
               </button>
+
             </div>
 
             {editingId === `reply-${c.id}` && (
