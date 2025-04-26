@@ -26,6 +26,8 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
 
 
 
+
+
   useEffect(() => {
     const fetchUser = async () => {
       const snap = await getDoc(doc(db, 'users', post.userId));
@@ -105,9 +107,11 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
   };
   
   
+  const reactions = post.reactions || {};
 
-  const getReactionCount = (type) => post.reactions?.[type]?.length || 0;
-  const hasReacted = (type) => post.reactions?.[type]?.includes(currentUser?.uid);
+  const getReactionCount = (type) => reactions[type]?.length || 0;
+  const hasReacted = (type) => reactions[type]?.includes(currentUser?.uid);
+  
 
 if (hideInDiscovery) return null;
   return (
