@@ -1,7 +1,7 @@
 // CommentInput.jsx
 import { useRef, useState } from 'react';
 
-export default function CommentInput({ onSend, placeholder = 'Add a comment...', small = false }) {
+export default function CommentInput({ onSend, placeholder = "Write a comment...", text = "", media = null }) {
   const [text, setText] = useState('');
   const [media, setMedia] = useState(null);
   const fileRef = useRef();
