@@ -80,17 +80,30 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
       [`reactions.barbell`]: arrayRemove(userId),
     };
   
-    // If already reacted with this type, just remove it (toggle off)
+    // If already reacted with this type, just remove it
     if (currentReactions[type]?.includes(userId)) {
-      await updateDoc(postRef, { [ `reactions.${type}` ]: arrayRemove(userId) });
+      await updateDoc(postRef, { [`reactions.${type}`]: arrayRemove(userId) });
     } else {
-      // Remove from all, then add the selected
+      // Remove old reactions first
       await updateDoc(postRef, {
         ...batch,
         [`reactions.${type}`]: arrayUnion(userId)
       });
+  
+      // 🔔 Send notification to post owner (only if not reacting to own post)
+      if (post.userId && post.userId !== userId) {
+        await addDoc(collection(db, 'users', post.userId, 'notifications'), {
+          type: 'reaction',
+          from: userId,
+          postId: post.id,
+          reactionType: type, // thumbsUp, fire, barbell
+          timestamp: Date.now(),
+          read: false,
+        });
+      }
     }
   };
+  
   
 
   const getReactionCount = (type) => post.reactions?.[type]?.length || 0;

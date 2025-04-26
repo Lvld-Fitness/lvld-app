@@ -4,6 +4,7 @@ import defaultExercises from './exerciseList';
 export default function ExercisePickerModal({
   selectedExercises,
   setSelectedExercises,
+  showPicker,
   onClose,
 }) {
   const [search, setSearch] = useState('');
@@ -56,11 +57,9 @@ export default function ExercisePickerModal({
   };
 
   const handleAddToWorkout = () => {
-    const filtered = highlighted.filter(
-      (name) => !selectedExercises.some((ex) => ex.name === name)
-    );
+    if (!Array.isArray(highlighted)) return;
   
-    const newExercises = filtered.map((name) => {
+    const newExercises = highlighted.map((name) => {
       const isCardio = name.toLowerCase().includes('run') || name.toLowerCase().includes('bike') || name.toLowerCase().includes('treadmill') || name.toLowerCase().includes('row') || name.toLowerCase().includes('walk') || name.toLowerCase().includes('sprint') || name.toLowerCase().includes('elliptical') || name.toLowerCase().includes('stairs') || name.toLowerCase().includes('cycle') || name.toLowerCase().includes('carry');
   
       return {
@@ -71,15 +70,29 @@ export default function ExercisePickerModal({
               { id: 1, weight: '', reps: '', completed: false },
               { id: 2, weight: '', reps: '', completed: false },
               { id: 3, weight: '', reps: '', completed: false }
-            ]
+            ],
       };
     });
   
-    // ✅ Send back only new exercises
-    setSelectedExercises(newExercises);
+    if (typeof showPicker === 'object' && showPicker.replaceIdx !== undefined) {
+      const updated = [...selectedExercises];
+      newExercises.forEach((ex, i) => {
+        updated.splice(showPicker.replaceIdx + i, 1, ex);
+      });
+      setSelectedExercises(updated);
+    } else {
+      // ✅ Only ADD new exercises without duplicating existing ones
+      const updated = [...selectedExercises, ...newExercises];
+      setSelectedExercises(updated);
+    }
+  
     setHighlighted([]);
     onClose();
   };
+  
+  
+  
+  
   
   
   

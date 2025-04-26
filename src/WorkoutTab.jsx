@@ -504,14 +504,19 @@ const finishWorkout = async () => {
   }
 
   let fact = 'YOU ARE A BEAST!';
-  try {
-    const isOnlyCardio = selectedExercises.every(ex =>
-      !ex.sets?.some(set => parseFloat(set.weight || 0) > 0)
-    );
-    const contextPrompt = isOnlyCardio
-    ? `Give me a short, powerful motivational quote for someone who just ran or walked ${topCardio.distance} miles. Avoid repetition. Make it feel like a personal boost for gym lovers. It can be quotes from Fitness icons or one you make up.`
-    : `Give me a short, powerful motivational quote for someone who just lifted a total of ${totalWeight} lbs in the gym. Avoid repetition. Make it feel personal and get them hyped. It can be quotes from Fitness icons or one you make up.`;
+try {
+  const didLift = selectedExercises.some(ex =>
+    ex.sets?.some(set => parseFloat(set.weight || 0) > 0)
+  );
+  const didCardio = topCardio?.distance > 0;
 
+  const contextPrompt = `Give me a short, powerful motivational quote for someone who ${
+    didLift ? `lifted a total of ${totalWeight.toLocaleString()} lbs` : ''
+  }${
+    didLift && didCardio ? ' and ' : ''
+  }${
+    didCardio ? `ran or walked ${topCardio.distance} miles` : ''
+  }. Make it hype, personal, and avoid repetition. Feel like it’s talking to a gym warrior.`
     const funFactRes = await fetch(
       import.meta.env.DEV
         ? 'http://localhost:3000/api/getFunFact'
@@ -643,7 +648,7 @@ return (
       <>
         {/* 🔘 Start a custom workout */}
         <button
-          onClick={() => setShowPicker(true)}
+          onClick={() => setShowPicker('new')}
           className="w-full bg-red-500 hover:bg-red-700 py-3 rounded text-lg font-bold mb-4"
         >
           Start Custom Workout
@@ -1061,25 +1066,13 @@ ${workout.exercises.map(ex => {
 {showPicker && (
   <ExercisePickerModal
     selectedExercises={selectedExercises}
-    setSelectedExercises={(newExercises) => {
-      if (!Array.isArray(newExercises)) return;
-      // 🔁 If user is replacing an existing exercise (via "Replace Exercise")
-      if (typeof showPicker === 'object' && showPicker.replaceIdx !== undefined) {
-        const updated = [...selectedExercises];
-        newExercises.forEach((ex, i) => {
-          updated.splice(showPicker.replaceIdx + i, 1, ex);
-        });
-        setSelectedExercises(updated);
-      } else {
-        // ➕ Otherwise, append selected exercises to the list
-        setSelectedExercises([...selectedExercises, ...newExercises]);
-      }
-      setShowPicker(false); // ✅ Close picker after selection
-    }}
+    setSelectedExercises={setSelectedExercises}
+    showPicker={showPicker} // 👈 ADD THIS
     onClose={() => setShowPicker(false)}
     exerciseList={exerciseList}
   />
 )}
+
 
 {/* 📝 Modal for adding/editing notes for a specific exercise */}
 {showNoteModal !== null && (

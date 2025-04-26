@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Gear } from 'phosphor-react';
 import { auth, db } from './firebase';
-import { doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, updateDoc, where, getDocs,  } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 
@@ -38,10 +38,12 @@ export default function ProfileTab() {
     Cycling: 0,
     Other: 0,
   });
-  const [notifications, setNotifications] = useState([]);
   const [selectedTitle, setSelectedTitle] = useState('');
   const [unlockedTitles, setUnlockedTitles] = useState([]);
   const [workoutStreak, setWorkoutStreak] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
 
 
 
@@ -128,6 +130,22 @@ useEffect(() => {
     }
   }
 };
+
+useEffect(() => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const q = query(collection(db, 'users', user.uid, 'notifications'), orderBy('timestamp', 'desc'));
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const notifs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setNotifications(notifs);
+    setUnreadCount(notifs.filter(n => !n.read).length);
+  });
+
+  return () => unsubscribe();
+}, []);
+
 
 
 const recalculateDistanceByType = (history) => {
@@ -355,7 +373,45 @@ const recalculateDistanceByType = (history) => {
           </p>
         </div>
 
-          
+            
+        <div className="bg-gray-900 rounded-lg p-4 mt-4">
+          <h3 className="text-lg font-bold text-white mb-2">🔔 Notifications</h3>
+
+          {notifications.length === 0 ? (
+            <p className="text-gray-400">No notifications yet.</p>
+          ) : (
+            notifications.map((notif) => (
+              <div
+                key={notif.id}
+                onClick={async () => {
+                  if (!notif.read) {
+                    await updateDoc(doc(db, 'users', auth.currentUser.uid, 'notifications', notif.id), { read: true });
+                  }
+                  if (notif.postId) {
+                    window.location.href = `/post/${notif.postId}`; // or your route
+                  }
+                }}
+                className="bg-gray-800 p-3 rounded mb-2 hover:bg-gray-700 cursor-pointer flex items-center justify-between"
+              >
+                <div className="text-sm text-white">
+                  {notif.type === 'reaction' && (
+                    <p>Someone reacted to your post! 🔥</p>
+                  )}
+                  {notif.type === 'comment' && (
+                    <p>Someone commented on your post! 💬</p>
+                  )}
+                  {notif.type === 'mention' && (
+                    <p>Someone mentioned you! 🏷️</p>
+                  )}
+                </div>
+                {!notif.read && (
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div> // 🔴 red dot on unread
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
 
         {showSettings && (
           <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">

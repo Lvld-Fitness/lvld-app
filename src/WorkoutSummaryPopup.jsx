@@ -65,30 +65,30 @@ export default function WorkoutSummaryPopup({ summaryData, onClose }) {
           </div>
         )}
 
-        {summaryData.exercises?.length > 0 && (
-          <div className="mt-6 text-sm text-white">
-            <p className="text-lg font-bold text-red-400 mb-2">📋 Full Workout</p>
-            {summaryData.exercises.map((ex, idx) => (
-              <div key={idx} className="mb-3">
-                <p className="font-bold text-yellow-300">{ex.name}</p>
-                <ul className="ml-3 space-y-1">
-                  {ex.sets.map((set, i) => (
-                    <li key={i} className={set.isPR ? "text-yellow-400 font-bold" : "text-gray-300"}>
-                      • {typeof set.weight === 'number' && set.reps
-                        ? `${set.weight} lbs × ${set.reps} reps`
-                        : set.distance && set.time
-                          ? `${set.distance} mi in ${set.time} min`
-                          : '—'}
-                      {set.isPR && typeof set.weight === 'number' && set.reps && (
-                        <span className="ml-1 text-red-400">🏆 PR</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+            {summaryData.exercises?.length > 0 && (
+              <div className="mt-6 text-sm text-white">
+                <p className="text-lg font-bold text-red-400 mb-2">📋 Full Workout</p>
+                {summaryData.exercises.map((ex, idx) => (
+                  <div key={idx} className="mb-3">
+                    <p className="font-bold text-yellow-300">{ex.name}</p>
+                    <ul className="ml-3 space-y-1">
+                      {ex.sets.map((set, i) => (
+                        <li key={i} className={set.isPR ? "text-yellow-400 font-bold" : "text-gray-300"}>
+                          • {typeof set.weight === 'number' && set.reps !== '' && set.reps !== undefined
+                            ? `${set.weight} lbs × ${set.reps} reps`
+                            : set.distance && set.time
+                              ? `${set.distance} mi in ${set.time} min`
+                              : '—'}
+                          {set.isPR && set.weight && set.reps ? (
+                            <span className="ml-1 text-red-400">🏆 PR</span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            )}
       </div>
     </div>
   );

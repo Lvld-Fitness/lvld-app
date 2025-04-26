@@ -71,26 +71,45 @@ export default function CommentSection({ postId }) {
       timestamp: serverTimestamp(),
     });
   
-    // 🔔 Handle mentions
-    const mentions = text.match(/@[\w\d]+/g) || [];
-    for (const rawHandle of mentions) {
-      const cleanHandle = rawHandle.replace('@', '').toLowerCase();
-      const handleSnap = await getDoc(doc(db, 'handles', cleanHandle));
-  
-      if (handleSnap.exists()) {
-        const { uid: mentionedUid } = handleSnap.data();
-        await addDoc(collection(db, 'users', mentionedUid, 'notifications'), {
-          type: 'mention',
-          from: user.uid,
-          postId,
-          commentId: newCommentRef.id,
-          text,
-          timestamp: Date.now(),
-          read: false,
-        });
-      }
+// 🔔 Handle mentions
+const mentions = text.match(/@[\w\d]+/g) || [];
+for (const rawHandle of mentions) {
+  const cleanHandle = rawHandle.replace('@', '').toLowerCase();
+  const handleSnap = await getDoc(doc(db, 'handles', cleanHandle));
+
+  if (handleSnap.exists()) {
+    const { uid: mentionedUid } = handleSnap.data();
+    await addDoc(collection(db, 'users', mentionedUid, 'notifications'), {
+      type: 'mention',
+      from: user.uid,
+      postId,
+      commentId: newCommentRef.id,
+      text,
+      timestamp: Date.now(),
+      read: false,
+    });
+  }
+}
+
+// 🔔 Handle comment notifications
+if (postId) {
+  const postSnap = await getDoc(doc(db, 'posts', postId));
+  if (postSnap.exists()) {
+    const postData = postSnap.data();
+    if (postData.userId && postData.userId !== user.uid) {
+      await addDoc(collection(db, 'users', postData.userId, 'notifications'), {
+        type: 'comment',
+        from: user.uid,
+        postId,
+        timestamp: Date.now(),
+        read: false,
+      });
     }
-  
+  }
+}
+
+    
+
     fetchComments();
   };
   
