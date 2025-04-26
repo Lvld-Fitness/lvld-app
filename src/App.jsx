@@ -13,6 +13,7 @@ import AppLayout from './AppLayout';
 import { RestTimerProvider } from './RestTimerContext';
 import { GlobalRestTimerProvider } from './GlobalRestTimerContext';
 import StoryViewer from './StoryViewer';
+import SinglePost from './SinglePost'; // if you have a SinglePost component (or whatever you named it)
 
 
 
@@ -114,7 +115,7 @@ export default function App() {
 
         <Route path="/story/:userId" element={<StoryViewer />} />
 
-
+        <Route path="/post/:postId" element={<SinglePost />} />
 
       </Routes>
 
