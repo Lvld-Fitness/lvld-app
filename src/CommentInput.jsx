@@ -12,6 +12,7 @@ export default function CommentInput({ onSend, placeholder = "Write a comment...
     await onSend({ text, media });
     setText('');
     setMedia(null);
+    if (fileRef.current) fileRef.current.value = ''; // clear file input
   };
 
   return (
