@@ -1,13 +1,13 @@
 // SinglePost.jsx
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, deleteDoc } from 'firebase/firestore'; // ✨ Added deleteDoc
 import { db, auth } from './firebase';
 import { useEffect, useState } from 'react';
 import PostCard from './PostCard';
-import { ArrowLeft } from '@phosphor-icons/react'; // 🔥
+import { ArrowLeft } from '@phosphor-icons/react';
 
 export default function SinglePost() {
-  const { postId } = useParams();
+  const { postId, notifId } = useParams(); // ✨ Now we get both postId and notifId
   const navigate = useNavigate();
   const [post, setPost] = useState(null);
 
@@ -16,10 +16,16 @@ export default function SinglePost() {
       const snap = await getDoc(doc(db, 'posts', postId));
       if (snap.exists()) {
         setPost({ id: snap.id, ...snap.data() });
+
+        // ✨ If notifId is present, delete the notification
+        if (notifId && auth.currentUser?.uid) {
+          await deleteDoc(doc(db, 'users', auth.currentUser.uid, 'notifications', notifId));
+        }
       }
     };
+
     loadPost();
-  }, [postId]);
+  }, [postId, notifId]); // ✨ depend on both postId and notifId
 
   if (!post) return <div className="text-white p-4">Loading post...</div>;
 
