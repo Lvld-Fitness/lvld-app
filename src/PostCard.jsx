@@ -97,8 +97,9 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
         await addDoc(collection(db, 'users', post.userId, 'notifications'), {
           type: 'reaction',
           from: userId,
+          fromUserName: currentUser.displayName || 'User',
           postId: post.id,
-          reactionType: type, // thumbsUp, fire, barbell
+          reactionType: type,
           timestamp: Date.now(),
           read: false,
         });

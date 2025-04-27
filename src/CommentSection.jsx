@@ -83,12 +83,13 @@ export default function CommentSection({ postId }) {
         await addDoc(collection(db, 'users', mentionedUid, 'notifications'), {
           type: 'mention',
           from: user.uid,
+          fromUserName: user.displayName || 'User', // 🆕 added here
           postId,
           commentId: newCommentRef.id,
           text,
           timestamp: Date.now(),
           read: false,
-        });
+        });        
       }
     }
   
@@ -100,10 +101,11 @@ export default function CommentSection({ postId }) {
         await addDoc(collection(db, 'users', postData.userId, 'notifications'), {
           type: 'comment',
           from: user.uid,
+          fromUserName: user.displayName || 'User', // 🆕 added here
           postId,
           timestamp: Date.now(),
           read: false,
-        });
+        });     
       }
     }
   

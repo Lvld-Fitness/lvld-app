@@ -4,7 +4,7 @@ import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { useEffect, useState } from 'react';
 import PostCard from './PostCard';
-import { ArrowLeft } from '@phosphor-icons/react';
+import { ArrowLeft, House } from '@phosphor-icons/react';
 
 export default function SinglePost() {
   const { postId, notifId } = useParams();
@@ -50,13 +50,13 @@ export default function SinglePost() {
 
   return (
     <div className="bg-black min-h-screen p-4 relative">
-      <button
+        <button
         onClick={() => navigate('/profile')}
-        className="text-red-400 hover:text-red-500 mb-4 flex items-center gap-2"
-      >
-        <ArrowLeft size={24} />
-        <span className="font-bold">Back to Profile</span>
-      </button>
+        className="fixed top-4 right-4 text-red-400 hover:text-red-500 bg-black bg-opacity-50 p-2 rounded-full shadow-lg z-[9999]"
+        >
+        <House size={28} weight="bold" />
+        </button>
+
 
       <PostCard post={post} currentUserId={auth.currentUser?.uid} />
     </div>
