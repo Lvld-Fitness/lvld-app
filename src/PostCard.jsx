@@ -1,6 +1,6 @@
 // PostCard.jsx
 import { useEffect, useState, useRef } from 'react';
-import { doc, getDoc, getDocs, collection, deleteDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, deleteDoc, updateDoc, arrayUnion, arrayRemove, addDoc } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { DotsThreeVertical, ThumbsUp, Barbell, Fire, Chats, CheckCircle, } from 'phosphor-react';
 import { useNavigate } from 'react-router-dom';

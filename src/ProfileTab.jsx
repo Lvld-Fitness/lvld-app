@@ -395,18 +395,19 @@ const recalculateDistanceByType = (history) => {
               >
                 <div className="text-sm text-white">
                   {notif.type === 'reaction' && (
-                    <p>Someone reacted to your post! 🔥</p>
+                    <p><span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> reacted to your post! 🔥</p>
                   )}
                   {notif.type === 'comment' && (
-                    <p>Someone commented on your post! 💬</p>
+                    <p><span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> commented on your post! 💬</p>
                   )}
                   {notif.type === 'mention' && (
-                    <p>Someone mentioned you! 🏷️</p>
+                    <p><span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> mentioned you! 🏷️</p>
                   )}
                 </div>
                 {!notif.read && (
                   <div className="w-3 h-3 rounded-full bg-red-500"></div> // 🔴 red dot on unread
                 )}
+
               </div>
             ))
           )}

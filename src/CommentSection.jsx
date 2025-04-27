@@ -114,19 +114,6 @@ export default function CommentSection({ postId }) {
   
   
 
-  const handleNewReply = async (commentId, { text }) => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    await addDoc(collection(db, 'posts', postId, 'comments', commentId, 'replies'), {
-      userId: user.uid,
-      text,
-      timestamp: serverTimestamp()
-    });
-
-    fetchComments();
-    setEditingId(null);
-  };
 
   const handleDelete = async (commentId, replyId = null) => {
     const ref = replyId
