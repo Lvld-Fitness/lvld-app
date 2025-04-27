@@ -82,32 +82,36 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
       [`reactions.barbell`]: arrayRemove(userId),
     };
   
-    // If already reacted with this type, just remove it
+    // If already reacted with this type, just remove it (toggle off)
     if (currentReactions[type]?.includes(userId)) {
       await updateDoc(postRef, { [`reactions.${type}`]: arrayRemove(userId) });
     } else {
-      // Remove old reactions first
+      // Remove from all, then add the selected
       await updateDoc(postRef, {
         ...batch,
         [`reactions.${type}`]: arrayUnion(userId)
       });
   
-      // 🔔 Send notification to post owner (only if not reacting to own post)
-      if (post.userId && post.userId !== userId) {
+      // 🛠️ ADD THIS FETCH
+      const postSnap = await getDoc(postRef);
+      const postData = postSnap.exists() ? postSnap.data() : null;
+  
+      if (postData && postData.userId !== userId) {
         const currentUserSnap = await getDoc(doc(db, 'users', currentUser.uid));
         const currentUserName = currentUserSnap.exists() ? currentUserSnap.data().name : 'Someone';
-        
+  
         await addDoc(collection(db, 'users', postData.userId, 'notifications'), {
           type: 'reaction',
-          from: currentUser.uid,
-          fromUserName: currentUserName,  // 👈 ADD THIS
+          from: userId,
+          fromUserName: currentUserName,
           postId: post.id,
           timestamp: Date.now(),
           read: false,
-        });        
+        });
       }
     }
   };
+  
   
   
   const reactions = post.reactions || {};

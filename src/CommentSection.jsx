@@ -83,10 +83,8 @@ export default function CommentSection({ postId }) {
         await addDoc(collection(db, 'users', mentionedUid, 'notifications'), {
           type: 'mention',
           from: user.uid,
-          fromUserName: user.displayName || 'User', // 🆕 added here
+          fromUserName: userName,  // 👈 ADD THIS
           postId,
-          commentId: newCommentRef.id,
-          text,
           timestamp: Date.now(),
           read: false,
         });        
