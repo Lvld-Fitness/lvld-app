@@ -32,7 +32,8 @@ export default function CommentSection({ postId }) {
         return {
           ...comment,
           userName: user.name || 'User',
-          userPic: user.profilePic || '/default-avatar.png',
+          userHandle: user.handle || '',
+          userPic: user.profilePic || '/default-avatar.png',          
           replies
         };
       })
@@ -157,7 +158,10 @@ export default function CommentSection({ postId }) {
                   className="w-6 h-6 rounded-full object-cover cursor-pointer"
                   onClick={() => navigate(`/profile/${c.userId}`)}
                 />
-                <span className="text-sm font-semibold text-white">{c.userName}</span>
+                <span className="text-sm font-semibold text-white">
+                  {c.userName} {c.userHandle && <span className="text-gray-400 text-xs">{c.userHandle}</span>}
+                </span>
+
               </div>
               {auth.currentUser?.uid === c.userId && (
                 <div className="relative">

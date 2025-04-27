@@ -466,31 +466,6 @@ const recalculateDistanceByType = (history) => {
               )}
 
 
-              {/* 🔁 Reset Buttons for Distance and Weight */}
-              <div className="space-y-2 mt-4">
-                <button
-                  onClick={async () => {
-                    setTotalDistance(0);
-                    await saveUserData('totalDistance', 0);
-                    localStorage.setItem('workoutHistory', JSON.stringify([]));
-                  }}
-                  className="w-full bg-blue-700 hover:bg-blue-800 py-2 rounded text-sm"
-                >
-                  Reset Distance
-                </button>
-
-                <button
-                  onClick={async () => {
-                    setTotalWeight(0);
-                    await saveUserData('totalWeight', 0);
-                    localStorage.setItem('workoutHistory', JSON.stringify([]));
-                  }}
-                  className="w-full bg-blue-700 hover:bg-blue-800 py-2 rounded text-sm"
-                >
-                  Reset Weight
-                </button>
-              </div>
-
               <button
   onClick={async () => {
     if (confirm('Are you sure you want to delete your account? This cannot be undone.')) {

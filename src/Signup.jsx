@@ -41,18 +41,33 @@ export default function Signup() {
       }
 
       // Save user profile
-      await setDoc(doc(db, 'users', uid), {
-        name: nameInput.trim(),
-        handle: fullHandle,
-        handleSearch: handleClean, // <- searchable lowercase handle (no @)
-        nameSearch: nameInput.trim().toLowerCase(), // <- searchable lowercase name
-        bio: '',
+      await setDoc(doc(db, 'users', user.uid), {
+        name,
+        handle: handle.toLowerCase(),
+        email,
         profilePic: '/default-avatar.png',
+        bio: '',
+        workoutHistory: [],
         totalWeight: 0,
         totalDistance: 0,
-        followers: [],
-        following: [LVLD_UID][Kan7o_UID],
+        totalDistanceByType: {
+          Walking: 0,
+          Running: 0,
+          Cycling: 0,
+          Other: 0,
+        },
+        level: 1,
+        xp: 0,
+        gender: '',
+        notifications: [],
+        following: [],
+        unlockedTitles: ['Beta Tester', 'Gym Rat', 'Chasing Gains', 'On The Grind', 'Earned Not Given', 'Under Construction' ],        // 🔥 NEW
+        selectedTitle: 'Beta Tester',         // 🔥 NEW
+        lastWorkoutDate: '',
+        workoutStreak: 0,
+        joinedAt: Date.now(),
       });
+      
 
       // Save handle mapping
       await setDoc(handleRef, { uid });
