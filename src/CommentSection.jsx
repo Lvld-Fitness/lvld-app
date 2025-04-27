@@ -77,19 +77,26 @@ export default function CommentSection({ postId }) {
     for (const rawHandle of mentions) {
       const cleanHandle = rawHandle.replace('@', '').toLowerCase();
       const handleSnap = await getDoc(doc(db, 'handles', cleanHandle));
-  
+    
       if (handleSnap.exists()) {
         const { uid: mentionedUid } = handleSnap.data();
+    
+        const userSnap = await getDoc(doc(db, 'users', user.uid));
+        const userName = userSnap.exists() ? userSnap.data().name : 'Someone';
+    
         await addDoc(collection(db, 'users', mentionedUid, 'notifications'), {
           type: 'mention',
           from: user.uid,
-          fromUserName: userName,  // 👈 ADD THIS
+          fromUserName: userName,
           postId,
+          commentId: newCommentRef.id,
+          text,
           timestamp: Date.now(),
           read: false,
-        });        
+        });
       }
     }
+    
   
     // 🔔 Notify post owner
     const postSnap = await getDoc(doc(db, 'posts', postId));

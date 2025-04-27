@@ -1,6 +1,6 @@
 // PostCard.jsx
 import { useEffect, useState, useRef } from 'react';
-import { doc, getDoc, getDocs, collection, deleteDoc, updateDoc, arrayUnion, arrayRemove, addDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, deleteDoc, updateDoc, addDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { DotsThreeVertical, ThumbsUp, Barbell, Fire, Chats, CheckCircle, } from 'phosphor-react';
 import { useNavigate } from 'react-router-dom';
@@ -82,28 +82,26 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
       [`reactions.barbell`]: arrayRemove(userId),
     };
   
-    // If already reacted with this type, just remove it (toggle off)
     if (currentReactions[type]?.includes(userId)) {
       await updateDoc(postRef, { [`reactions.${type}`]: arrayRemove(userId) });
     } else {
-      // Remove from all, then add the selected
       await updateDoc(postRef, {
         ...batch,
         [`reactions.${type}`]: arrayUnion(userId)
       });
   
-      // 🛠️ ADD THIS FETCH
-      const postSnap = await getDoc(postRef);
+      // 🔥 NEW: Send notification for reaction
+      const postSnap = await getDoc(doc(db, 'posts', post.id));
       const postData = postSnap.exists() ? postSnap.data() : null;
   
-      if (postData && postData.userId !== userId) {
-        const currentUserSnap = await getDoc(doc(db, 'users', currentUser.uid));
-        const currentUserName = currentUserSnap.exists() ? currentUserSnap.data().name : 'Someone';
+      if (postData?.userId && postData.userId !== userId) {
+        const userSnap = await getDoc(doc(db, 'users', userId));
+        const userName = userSnap.exists() ? userSnap.data().name : 'Someone';
   
         await addDoc(collection(db, 'users', postData.userId, 'notifications'), {
           type: 'reaction',
           from: userId,
-          fromUserName: currentUserName,
+          fromUserName: userName,
           postId: post.id,
           timestamp: Date.now(),
           read: false,
@@ -111,6 +109,7 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
       }
     }
   };
+  
   
   
   
