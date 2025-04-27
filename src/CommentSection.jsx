@@ -98,14 +98,17 @@ export default function CommentSection({ postId }) {
     if (postSnap.exists()) {
       const postData = postSnap.data();
       if (postData.userId && postData.userId !== user.uid) {
+        const userSnap = await getDoc(doc(db, 'users', user.uid));
+        const userName = userSnap.exists() ? userSnap.data().name : 'Someone';
+        
         await addDoc(collection(db, 'users', postData.userId, 'notifications'), {
           type: 'comment',
           from: user.uid,
-          fromUserName: user.displayName || 'User', // 🆕 added here
+          fromUserName: userName,  // 👈 ADD THIS
           postId,
           timestamp: Date.now(),
           read: false,
-        });     
+        });            
       }
     }
   

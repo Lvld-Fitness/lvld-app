@@ -94,15 +94,17 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
   
       // 🔔 Send notification to post owner (only if not reacting to own post)
       if (post.userId && post.userId !== userId) {
-        await addDoc(collection(db, 'users', post.userId, 'notifications'), {
+        const currentUserSnap = await getDoc(doc(db, 'users', currentUser.uid));
+        const currentUserName = currentUserSnap.exists() ? currentUserSnap.data().name : 'Someone';
+        
+        await addDoc(collection(db, 'users', postData.userId, 'notifications'), {
           type: 'reaction',
-          from: userId,
-          fromUserName: currentUser.displayName || 'User',
+          from: currentUser.uid,
+          fromUserName: currentUserName,  // 👈 ADD THIS
           postId: post.id,
-          reactionType: type,
           timestamp: Date.now(),
           read: false,
-        });
+        });        
       }
     }
   };
