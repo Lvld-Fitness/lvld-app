@@ -82,12 +82,12 @@ export default function CommentSection({ postId }) {
         const { uid: mentionedUid } = handleSnap.data();
     
         const userSnap = await getDoc(doc(db, 'users', user.uid));
-        const userName = userSnap.exists() ? userSnap.data().name : 'Someone';
+        const fromUserName = userSnap.exists() ? userSnap.data().name : 'Someone';
     
         await addDoc(collection(db, 'users', mentionedUid, 'notifications'), {
           type: 'mention',
           from: user.uid,
-          fromUserName: userName,
+          fromUserName: fromUserName,  // ✅ use this
           postId,
           commentId: newCommentRef.id,
           text,
@@ -96,6 +96,7 @@ export default function CommentSection({ postId }) {
         });
       }
     }
+    
     
   
     // 🔔 Notify post owner
