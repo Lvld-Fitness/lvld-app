@@ -15,13 +15,11 @@ export default function ProfileTab() {
   const [bio, setBio] = useState('This is your bio. Click to edit.');
   const [editingBio, setEditingBio] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-
   const [level, setLevel] = useState(1);
   const [xp, setXp] = useState(0);
   const [xpProgress, setXpProgress] = useState(0);
   const [currentLevelXp, setCurrentLevelXp] = useState(0);
   const [currentLevelXpNeeded, setCurrentLevelXpNeeded] = useState(1000);
-
   const [weeklyStreak, setWeeklyStreak] = useState(0);
   const [totalWeight, setTotalWeight] = useState(0);
   const [totalDistance, setTotalDistance] = useState(0);
@@ -43,8 +41,15 @@ export default function ProfileTab() {
   const [workoutStreak, setWorkoutStreak] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [weight, setWeight] = useState('');
+  const [height, setHeight] = useState('');
+  const [gender, setGender] = useState('');
+  const [fitnessGoal, setFitnessGoal] = useState('');
+  const [settingsTab, setSettingsTab] = useState('account'); // 'account' or 'fitness'
 
 
+
+  
 
 
 useEffect(() => {
@@ -116,6 +121,10 @@ useEffect(() => {
 
       setSelectedTitle(data.selectedTitle || '');
       setUnlockedTitles(data.unlockedTitles || ['Beta Tester']);
+      setWeight(data.weight || '');
+      setHeight(data.height || '');
+      setGender(data.gender || '');
+      setFitnessGoal(data.fitnessGoal || '');
 
       
 
@@ -348,9 +357,6 @@ const recalculateDistanceByType = (history) => {
               {displayWeight}
             </p>
             <p className="text-gray-400 text-xs mt-1">TOTAL WEIGHT LIFTED</p>
-            {showLastWorkoutWeight && (
-              <p className="text-sm text-gray-300 mt-2">Last Workout: {lastWorkoutWeight.toLocaleString()} lbs</p>
-            )}
           </div>
           <div>
             <p className="text-2xl font-extrabold text-red-500">{workoutStreak}</p>
@@ -419,6 +425,22 @@ const recalculateDistanceByType = (history) => {
             <div className="bg-gray-900 p-6 rounded-lg text-white w-80 space-y-4 relative">
               <button onClick={() => setShowSettings(false)} className="absolute top-2 right-2 text-gray-400 hover:text-white text-xl">✖</button>
               <h2 className="text-xl font-bold mb-2">Settings</h2>
+              <div className="flex justify-center gap-4 mb-4">
+                
+                <button
+                  onClick={() => setSettingsTab('account')}
+                  className={`px-3 py-1 rounded ${settingsTab === 'account' ? 'bg-red-600' : 'bg-gray-700'}`}
+                >
+                  Account
+                </button>
+                <button
+                  onClick={() => setSettingsTab('fitness')}
+                  className={`px-3 py-1 rounded ${settingsTab === 'fitness' ? 'bg-red-600' : 'bg-gray-700'}`}
+                >
+                  Fitness Profile
+                </button>
+              </div>
+
               <div>
                 <label className="block text-sm mb-1">Account Name</label>
                 <input type="text" value={name} onChange={(e) => { setName(e.target.value); saveUserData('name', e.target.value); }} className="w-full px-2 py-1 rounded bg-gray-800 text-white" />
@@ -464,6 +486,55 @@ const recalculateDistanceByType = (history) => {
                   </select>
                 </div>
               )}
+
+<div className="space-y-3">
+  <div>
+    <label className="block text-sm mb-1">Weight (lbs)</label>
+    <input
+      type="number"
+      value={weight}
+      onChange={(e) => { setWeight(e.target.value); saveUserData('weight', e.target.value); }}
+      className="w-full px-2 py-1 rounded bg-gray-800 text-white"
+    />
+  </div>
+
+  <div>
+    <label className="block text-sm mb-1">Height (inches)</label>
+    <input
+      type="number"
+      value={height}
+      onChange={(e) => { setHeight(e.target.value); saveUserData('height', e.target.value); }}
+      className="w-full px-2 py-1 rounded bg-gray-800 text-white"
+    />
+  </div>
+
+  <div>
+    <label className="block text-sm mb-1">Gender</label>
+    <select
+      value={gender}
+      onChange={(e) => { setGender(e.target.value); saveUserData('gender', e.target.value); }}
+      className="w-full px-2 py-1 rounded bg-gray-800 text-white"
+    >
+      <option value="">Select Gender</option>
+      <option value="male">Male</option>
+      <option value="female">Female</option>
+    </select>
+  </div>
+
+  <div>
+    <label className="block text-sm mb-1">Fitness Goal</label>
+    <select
+      value={fitnessGoal}
+      onChange={(e) => { setFitnessGoal(e.target.value); saveUserData('fitnessGoal', e.target.value); }}
+      className="w-full px-2 py-1 rounded bg-gray-800 text-white"
+    >
+      <option value="">Select Goal</option>
+      <option value="gain">Gain Muscle</option>
+      <option value="lose">Lose Weight</option>
+      <option value="maintain">Maintain</option>
+    </select>
+  </div>
+</div>
 
 
               <button

@@ -26,24 +26,20 @@ export default function Signup() {
 
     try {
       const userCred = await createUserWithEmailAndPassword(auth, email, password);
-      const uid = userCred.user.uid;
-      const LVLD_UID = 'dKdmdsLKsTY51nFmqHjBWepZgDp2';
-      const Kan7o_UID = 'M5Hg7i00IjUiFmXGQyFxsUw7Y5z2';
+      const user = userCred.user;
 
       const handleClean = handleInput.trim().replace(/^@/, '').toLowerCase();
       const fullHandle = `@${handleClean}`;
 
-      // Check if handle already exists
       const handleRef = doc(db, 'handles', handleClean);
       const existingHandle = await getDoc(handleRef);
       if (existingHandle.exists()) {
         throw new Error('Handle is already taken. Please choose another one.');
       }
 
-      // Save user profile
       await setDoc(doc(db, 'users', user.uid), {
-        name,
-        handle: handle.toLowerCase(),
+        name: nameInput,
+        handle: fullHandle.toLowerCase(),
         email,
         profilePic: '/default-avatar.png',
         bio: '',
@@ -61,16 +57,17 @@ export default function Signup() {
         gender: '',
         notifications: [],
         following: [],
-        unlockedTitles: ['Beta Tester', 'Gym Rat', 'Chasing Gains', 'On The Grind', 'Earned Not Given', 'Under Construction' ],        // 🔥 NEW
-        selectedTitle: 'Beta Tester',         // 🔥 NEW
+        unlockedTitles: ['Beta Tester', 'Gym Rat', 'Chasing Gains', 'On The Grind', 'Earned Not Given', 'Under Construction'],
+        selectedTitle: 'Beta Tester',
         lastWorkoutDate: '',
         workoutStreak: 0,
         joinedAt: Date.now(),
+        weight: '',
+        height: '',
+        fitnessGoal: '',
       });
-      
 
-      // Save handle mapping
-      await setDoc(handleRef, { uid });
+      await setDoc(handleRef, { uid: user.uid });
 
       navigate('/dashboard');
     } catch (err) {
@@ -89,10 +86,7 @@ export default function Signup() {
         ✕
       </button>
 
-      <form
-        onSubmit={handleSignup}
-        className="bg-gray-800 p-6 rounded shadow-md w-full max-w-sm space-y-4"
-      >
+      <form onSubmit={handleSignup} className="bg-gray-800 p-6 rounded shadow-md w-full max-w-sm space-y-4">
         <h2 className="text-xl font-bold text-center">Create Account</h2>
 
         <input
@@ -134,7 +128,7 @@ export default function Signup() {
             onChange={(e) => setAgree(e.target.checked)}
             className="accent-purple-600"
           />
-          <span>I am at least 16 years old and agree to the terms of use. </span>
+          <span>I am at least 16 years old and agree to the terms of use.</span>
           <button
             type="button"
             onClick={() => setShowTerms(true)}

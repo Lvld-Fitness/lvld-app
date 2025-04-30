@@ -210,6 +210,13 @@ useEffect(() => {
       setWorkoutStartTime(now);
       localStorage.setItem('workoutStartTime', now.toString());
     }
+
+    // 🆕 NEW: Update Firestore status
+    const user = auth.currentUser;
+    if (user) {
+      const userRef = doc(db, 'users', user.uid);
+      updateDoc(userRef, { workingOut: true });
+    }
   }
 }, [selectedExercises]);
 
@@ -354,7 +361,7 @@ const toggleComplete = (exerciseIdx, setIdx) => {
 };
 
 // 🛑 Cancels the current workout session and clears all related local state and storage
-const cancelWorkout = () => {
+const cancelWorkout = async () => {
   setSelectedExercises([]);
   setWorkoutStartTime(null);
   setElapsedTime(0);
@@ -362,7 +369,12 @@ const cancelWorkout = () => {
   localStorage.removeItem('workoutStartTime');
   localStorage.removeItem('currentWorkoutName');
 
+  const user = auth.currentUser;
+  if (user) {
+    await updateDoc(doc(db, 'users', user.uid), { workingOut: false });
+  }
 };
+
 
 
 const calculateDistanceByType = (exercises) => {
@@ -503,6 +515,9 @@ const finishWorkout = async () => {
     }
   }
 
+
+
+
   let fact = 'YOU ARE A BEAST!';
 try {
   const didLift = selectedExercises.some(ex =>
@@ -576,7 +591,9 @@ try {
     exercises: formattedExercises // used by PostCard dropdown
   });
   
-  
+  // 🆕 After finishing, mark user as NOT working out
+  await updateDoc(doc(db, 'users', user.uid), { workingOut: false });
+
 
   setSummaryData({
     name: completedWorkout.name,
@@ -735,7 +752,7 @@ return (
                         {new Date(workout.timestamp).toLocaleDateString()} • {new Date(workout.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                       <p className="text-sm text-gray-400">
-                        Duration: {workout.duration || 'N/A'} • Total Weight: {workout.totalWeight || 0} lbs
+                        • Total Weight: {workout.totalWeight || 0} lbs
                       </p>
                     </div>
 
