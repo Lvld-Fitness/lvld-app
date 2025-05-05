@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Gear } from 'phosphor-react';
 import { auth, db } from './firebase';
-import { doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, updateDoc, where, getDocs,  } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, updateDoc, deleteDoc, where, getDocs,  } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 
