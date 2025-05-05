@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Gear } from 'phosphor-react';
 import { auth, db } from './firebase';
 import { doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, updateDoc, deleteDoc, where, getDocs,  } from 'firebase/firestore';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut, deleteUser, } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 
 export default function ProfileTab() {
@@ -289,6 +289,24 @@ const recalculateDistanceByType = (history) => {
     navigate('/login');
   };
 
+  // 🧾 Delete Account Logic
+const handleDeleteAccount = async () => {
+  try {
+    const user = auth.currentUser;
+    if (!user) throw new Error("No user logged in");
+
+    await deleteDoc(doc(db, 'users', user.uid));
+    await deleteUser(user);
+
+    alert("Account deleted successfully.");
+    navigate('/login'); // optional redirect
+  } catch (err) {
+    console.error("Account deletion failed:", err);
+    alert("Failed to delete account.");
+  }
+};
+
+
   return (
     <div className="p-4 text-white bg-black min-h-screen relative">
       <button onClick={() => setShowSettings(true)} className="absolute top-4 right-4 text-white">
@@ -549,7 +567,7 @@ const recalculateDistanceByType = (history) => {
             if (uid) {
               try {
                 await deleteDoc(doc(db, 'users', uid));
-                await user.delete();
+                await deleteUser(user);
                 navigate('/signup');
               } catch (err) {
                 console.error('Account deletion failed:', err);
