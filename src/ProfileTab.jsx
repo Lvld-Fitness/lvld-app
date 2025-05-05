@@ -289,22 +289,35 @@ const recalculateDistanceByType = (history) => {
     navigate('/login');
   };
 
-  // 🧾 Delete Account Logic
-const handleDeleteAccount = async () => {
-  try {
+  const handleDeleteAccount = async (navigate) => {
     const user = auth.currentUser;
-    if (!user) throw new Error("No user logged in");
-
-    await deleteDoc(doc(db, 'users', user.uid));
-    await deleteUser(user);
-
-    alert("Account deleted successfully.");
-    navigate('/login'); // optional redirect
-  } catch (err) {
-    console.error("Account deletion failed:", err);
-    alert("Failed to delete account.");
-  }
-};
+    const email = user?.email;
+  
+    if (!user || !email) return;
+  
+    const confirmed = confirm('Are you sure you want to delete your account? This cannot be undone.');
+    if (!confirmed) return;
+  
+    const password = prompt("To confirm, enter your password:");
+    if (!password) {
+      alert("Account deletion cancelled.");
+      return;
+    }
+  
+    try {
+      const credential = EmailAuthProvider.credential(email, password);
+      await reauthenticateWithCredential(user, credential);
+  
+      await deleteDoc(doc(db, 'users', user.uid));
+      await deleteUser(user);
+  
+      alert("Account deleted.");
+      navigate('/signup');
+    } catch (err) {
+      console.error("Account deletion failed:", err);
+      alert("Failed to delete account. Password may be incorrect.");
+    }
+  };
 
 
   return (
@@ -560,34 +573,7 @@ const handleDeleteAccount = async () => {
       )}
 
 <button
-  onClick={async () => {
-    if (confirm('Are you sure you want to delete your account? This cannot be undone.')) {
-      const user = auth.currentUser;
-      const email = user?.email;
-      if (user && email) {
-        const password = prompt("To confirm, enter your password:");
-
-        if (!password) {
-          alert("Account deletion cancelled.");
-          return;
-        }
-
-        try {
-          const credential = EmailAuthProvider.credential(email, password);
-          await reauthenticateWithCredential(user, credential); // 🔐 reauthenticate
-
-          await deleteDoc(doc(db, 'users', user.uid));
-          await deleteUser(user);
-
-          alert("Account deleted.");
-          navigate('/signup');
-        } catch (err) {
-          console.error("Account deletion failed:", err);
-          alert("Failed to delete account. Password may be incorrect.");
-        }
-      }
-    }
-  }}
+  onClick={() => handleDeleteAccount(navigate)}
   className="w-full bg-red-800 hover:bg-red-900 py-2 rounded font-bold text-white"
 >
   Delete Account
