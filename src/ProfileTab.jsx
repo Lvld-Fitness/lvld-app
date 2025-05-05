@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Gear } from 'phosphor-react';
 import { auth, db } from './firebase';
 import { doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, updateDoc, deleteDoc, where, getDocs,  } from 'firebase/firestore';
-import { onAuthStateChanged, signOut, deleteUser, } from 'firebase/auth';
+import { onAuthStateChanged, signOut, deleteUser, EmailAuthProvider, reauthenticateWithCredential, } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 
 export default function ProfileTab() {
@@ -559,27 +559,40 @@ const handleDeleteAccount = async () => {
         </div>
       )}
 
-      <button
-        onClick={async () => {
-          if (confirm('Are you sure you want to delete your account? This cannot be undone.')) {
-            const user = auth.currentUser;
-            const uid = user?.uid;
-            if (uid) {
-              try {
-                await deleteDoc(doc(db, 'users', uid));
-                await deleteUser(user);
-                navigate('/signup');
-              } catch (err) {
-                console.error('Account deletion failed:', err);
-                alert('Failed to delete account. Please reauthenticate or try again.');
-              }
-            }
-          }
-        }}
-        className="w-full bg-red-800 hover:bg-red-900 py-2 rounded font-bold text-white"
-      >
-        Delete Account
-      </button>
+<button
+  onClick={async () => {
+    if (confirm('Are you sure you want to delete your account? This cannot be undone.')) {
+      const user = auth.currentUser;
+      const email = user?.email;
+      if (user && email) {
+        const password = prompt("To confirm, enter your password:");
+
+        if (!password) {
+          alert("Account deletion cancelled.");
+          return;
+        }
+
+        try {
+          const credential = EmailAuthProvider.credential(email, password);
+          await reauthenticateWithCredential(user, credential); // 🔐 reauthenticate
+
+          await deleteDoc(doc(db, 'users', user.uid));
+          await deleteUser(user);
+
+          alert("Account deleted.");
+          navigate('/signup');
+        } catch (err) {
+          console.error("Account deletion failed:", err);
+          alert("Failed to delete account. Password may be incorrect.");
+        }
+      }
+    }
+  }}
+  className="w-full bg-red-800 hover:bg-red-900 py-2 rounded font-bold text-white"
+>
+  Delete Account
+</button>
+
 
       <button onClick={handleLogout} className="w-full mt-2 bg-red-600 hover:bg-red-700 py-2 rounded font-bold">
         Log Out
