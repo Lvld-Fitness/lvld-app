@@ -421,148 +421,155 @@ const recalculateDistanceByType = (history) => {
 
 
         {showSettings && (
-          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-            <div className="bg-gray-900 p-6 rounded-lg text-white w-80 space-y-4 relative">
-              <button onClick={() => setShowSettings(false)} className="absolute top-2 right-2 text-gray-400 hover:text-white text-xl">✖</button>
-              <h2 className="text-xl font-bold mb-2">Settings</h2>
-              <div className="flex justify-center gap-4 mb-4">
-                
-                <button
-                  onClick={() => setSettingsTab('account')}
-                  className={`px-3 py-1 rounded ${settingsTab === 'account' ? 'bg-red-600' : 'bg-gray-700'}`}
-                >
-                  Account
-                </button>
-                <button
-                  onClick={() => setSettingsTab('fitness')}
-                  className={`px-3 py-1 rounded ${settingsTab === 'fitness' ? 'bg-red-600' : 'bg-gray-700'}`}
-                >
-                  Fitness Profile
-                </button>
-              </div>
+  <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+    <div className="bg-gray-900 p-6 rounded-lg text-white w-80 space-y-4 relative">
+      <button onClick={() => setShowSettings(false)} className="absolute top-2 right-2 text-gray-400 hover:text-white text-xl">✖</button>
+      <h2 className="text-xl font-bold mb-2">Settings</h2>
 
-              <div>
-                <label className="block text-sm mb-1">Account Name</label>
-                <input type="text" value={name} onChange={(e) => { setName(e.target.value); saveUserData('name', e.target.value); }} className="w-full px-2 py-1 rounded bg-gray-800 text-white" />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Username</label>
-                <input
-                  type="text"
-                  value={handle}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/^@/, ''); // remove any leading @
-                    const formatted = `@${raw}`;
-                    setHandle(formatted);
-                    saveUserData('handle', formatted);
-                  }}
-                  className="w-full px-2 py-1 rounded bg-gray-800 text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Distance Units</label>
-                <button onClick={toggleDistanceUnit} className="w-full bg-gray-700 hover:bg-gray-600 py-1 px-2 rounded text-sm">Switch to {useKilometers ? 'Miles' : 'Kilometers'}</button>
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Weight Units</label>
-                <button onClick={() => { const newSetting = !useKilograms; setUseKilograms(newSetting); localStorage.setItem('weightUnit', newSetting ? 'kg' : 'lbs'); }} className="w-full bg-gray-700 hover:bg-gray-600 py-1 px-2 rounded text-sm">Switch to {useKilograms ? 'Pounds' : 'Kilograms'}</button>
-              </div>
+      <div className="flex justify-center gap-4 mb-4">
+        <button
+          onClick={() => setSettingsTab('account')}
+          className={`px-3 py-1 rounded ${settingsTab === 'account' ? 'bg-red-600' : 'bg-gray-700'}`}
+        >
+          Account
+        </button>
+        <button
+          onClick={() => setSettingsTab('fitness')}
+          className={`px-3 py-1 rounded ${settingsTab === 'fitness' ? 'bg-red-600' : 'bg-gray-700'}`}
+        >
+          Fitness Profile
+        </button>
+      </div>
 
-              {unlockedTitles.length > 0 && (
-                <div>
-                  <label className="block text-sm mb-1">Choose Title</label>
-                  <select
-                    value={selectedTitle}
-                    onChange={async (e) => {
-                      const newTitle = e.target.value;
-                      setSelectedTitle(newTitle);
-                      await saveUserData('selectedTitle', newTitle);
-                    }}
-                    className="w-full px-2 py-1 rounded bg-gray-800 text-white"
-                  >
-                    {unlockedTitles.map((title, idx) => (
-                      <option key={idx} value={title}>{title}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-<div className="space-y-3">
-  <div>
-    <label className="block text-sm mb-1">Weight (lbs)</label>
-    <input
-      type="number"
-      value={weight}
-      onChange={(e) => { setWeight(e.target.value); saveUserData('weight', e.target.value); }}
-      className="w-full px-2 py-1 rounded bg-gray-800 text-white"
-    />
-  </div>
-
-  <div>
-    <label className="block text-sm mb-1">Height (inches)</label>
-    <input
-      type="number"
-      value={height}
-      onChange={(e) => { setHeight(e.target.value); saveUserData('height', e.target.value); }}
-      className="w-full px-2 py-1 rounded bg-gray-800 text-white"
-    />
-  </div>
-
-  <div>
-    <label className="block text-sm mb-1">Gender</label>
-    <select
-      value={gender}
-      onChange={(e) => { setGender(e.target.value); saveUserData('gender', e.target.value); }}
-      className="w-full px-2 py-1 rounded bg-gray-800 text-white"
-    >
-      <option value="">Select Gender</option>
-      <option value="male">Male</option>
-      <option value="female">Female</option>
-    </select>
-  </div>
-
-  <div>
-    <label className="block text-sm mb-1">Fitness Goal</label>
-    <select
-      value={fitnessGoal}
-      onChange={(e) => { setFitnessGoal(e.target.value); saveUserData('fitnessGoal', e.target.value); }}
-      className="w-full px-2 py-1 rounded bg-gray-800 text-white"
-    >
-      <option value="">Select Goal</option>
-      <option value="gain">Gain Muscle</option>
-      <option value="lose">Lose Weight</option>
-      <option value="maintain">Maintain</option>
-    </select>
-  </div>
-</div>
-
-
-              <button
-  onClick={async () => {
-    if (confirm('Are you sure you want to delete your account? This cannot be undone.')) {
-      const user = auth.currentUser;
-      const uid = user?.uid;
-      if (uid) {
-        try {
-          await deleteDoc(doc(db, 'users', uid));
-          await user.delete(); // Delete auth account
-          navigate('/signup');
-        } catch (err) {
-          console.error('Account deletion failed:', err);
-          alert('Failed to delete account. Please reauthenticate or try again.');
-        }
-      }
-    }
-  }}
-  className="w-full bg-red-800 hover:bg-red-900 py-2 rounded font-bold text-white"
->
-  Delete Account
-</button>
-
-<button onClick={handleLogout} className="w-full mt-2 bg-red-600 hover:bg-red-700 py-2 rounded font-bold">Log Out</button>
-            </div>
+      {settingsTab === 'account' && (
+        <>
+          <div>
+            <label className="block text-sm mb-1">Account Name</label>
+            <input type="text" value={name} onChange={(e) => { setName(e.target.value); saveUserData('name', e.target.value); }} className="w-full px-2 py-1 rounded bg-gray-800 text-white" />
           </div>
-        )}
+          <div>
+            <label className="block text-sm mb-1">Username</label>
+            <input
+              type="text"
+              value={handle}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/^@/, '');
+                const formatted = `@${raw}`;
+                setHandle(formatted);
+                saveUserData('handle', formatted);
+              }}
+              className="w-full px-2 py-1 rounded bg-gray-800 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Distance Units</label>
+            <button onClick={toggleDistanceUnit} className="w-full bg-gray-700 hover:bg-gray-600 py-1 px-2 rounded text-sm">Switch to {useKilometers ? 'Miles' : 'Kilometers'}</button>
+          </div>
+          <div>
+            <label className="block text-sm mb-1">Weight Units</label>
+            <button onClick={() => { const newSetting = !useKilograms; setUseKilograms(newSetting); localStorage.setItem('weightUnit', newSetting ? 'kg' : 'lbs'); }} className="w-full bg-gray-700 hover:bg-gray-600 py-1 px-2 rounded text-sm">Switch to {useKilograms ? 'Pounds' : 'Kilograms'}</button>
+          </div>
+          {unlockedTitles.length > 0 && (
+            <div>
+              <label className="block text-sm mb-1">Choose Title</label>
+              <select
+                value={selectedTitle}
+                onChange={async (e) => {
+                  const newTitle = e.target.value;
+                  setSelectedTitle(newTitle);
+                  await saveUserData('selectedTitle', newTitle);
+                }}
+                className="w-full px-2 py-1 rounded bg-gray-800 text-white"
+              >
+                {unlockedTitles.map((title, idx) => (
+                  <option key={idx} value={title}>{title}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </>
+      )}
+
+      {settingsTab === 'fitness' && (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm mb-1">Weight (lbs)</label>
+            <input
+              type="number"
+              value={weight}
+              onChange={(e) => { setWeight(e.target.value); saveUserData('weight', e.target.value); }}
+              className="w-full px-2 py-1 rounded bg-gray-800 text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm mb-1">Height (inches)</label>
+            <input
+              type="number"
+              value={height}
+              onChange={(e) => { setHeight(e.target.value); saveUserData('height', e.target.value); }}
+              className="w-full px-2 py-1 rounded bg-gray-800 text-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm mb-1">Gender</label>
+            <select
+              value={gender}
+              onChange={(e) => { setGender(e.target.value); saveUserData('gender', e.target.value); }}
+              className="w-full px-2 py-1 rounded bg-gray-800 text-white"
+            >
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm mb-1">Fitness Goal</label>
+            <select
+              value={fitnessGoal}
+              onChange={(e) => { setFitnessGoal(e.target.value); saveUserData('fitnessGoal', e.target.value); }}
+              className="w-full px-2 py-1 rounded bg-gray-800 text-white"
+            >
+              <option value="">Select Goal</option>
+              <option value="gain">Gain Muscle</option>
+              <option value="lose">Lose Weight</option>
+              <option value="maintain">Maintain</option>
+            </select>
+          </div>
+        </div>
+      )}
+
+      <button
+        onClick={async () => {
+          if (confirm('Are you sure you want to delete your account? This cannot be undone.')) {
+            const user = auth.currentUser;
+            const uid = user?.uid;
+            if (uid) {
+              try {
+                await deleteDoc(doc(db, 'users', uid));
+                await user.delete();
+                navigate('/signup');
+              } catch (err) {
+                console.error('Account deletion failed:', err);
+                alert('Failed to delete account. Please reauthenticate or try again.');
+              }
+            }
+          }
+        }}
+        className="w-full bg-red-800 hover:bg-red-900 py-2 rounded font-bold text-white"
+      >
+        Delete Account
+      </button>
+
+      <button onClick={handleLogout} className="w-full mt-2 bg-red-600 hover:bg-red-700 py-2 rounded font-bold">
+        Log Out
+      </button>
+    </div>
+  </div>
+)}
+
       </div>
     </div>
   );

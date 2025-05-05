@@ -451,7 +451,7 @@ const finishWorkout = async () => {
   });
   localStorage.setItem('lastUsedSets', JSON.stringify(lastSets));
 
-  const updatedHistory = [completedWorkout, ...workoutHistory];
+  const updatedHistory = [completedWorkout, ...workoutHistory].splice(0, 10000);
   setWorkoutHistory(updatedHistory);
   localStorage.setItem('workoutHistory', JSON.stringify(updatedHistory));
 

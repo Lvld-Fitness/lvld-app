@@ -28,10 +28,13 @@ export default function Signup() {
       const userCred = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCred.user;
 
+      const LVLD_UID = 'dKdmdsLKsTY51nFmqHjBWepZgDp2';
+      const Kan7o_UID = 'M5Hg7i00IjUiFmXGQyFxsUw7Y5z2';
+
       const handleClean = handleInput.trim().replace(/^@/, '').toLowerCase();
       const fullHandle = `@${handleClean}`;
-
       const handleRef = doc(db, 'handles', handleClean);
+
       const existingHandle = await getDoc(handleRef);
       if (existingHandle.exists()) {
         throw new Error('Handle is already taken. Please choose another one.');
@@ -56,7 +59,7 @@ export default function Signup() {
         xp: 0,
         gender: '',
         notifications: [],
-        following: [],
+        following: [LVLD_UID, Kan7o_UID],
         unlockedTitles: ['Beta Tester', 'Gym Rat', 'Chasing Gains', 'On The Grind', 'Earned Not Given', 'Under Construction'],
         selectedTitle: 'Beta Tester',
         lastWorkoutDate: '',

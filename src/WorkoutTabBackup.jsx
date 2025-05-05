@@ -10,6 +10,8 @@ import RestTimerModal from './RestTimerModal';
 import RestFloatingTimer from './RestFloatingTimer';
 import GymScanModal from './GymScanModal_LocalV9';
 import WorkoutSummaryPopup from './WorkoutSummaryPopup';
+import { TITLE_ACHIEVEMENTS } from './titleCriteria'; // 🏷️ Title unlock rules
+
 
 
 // 📋 Default Exercise List
@@ -26,7 +28,9 @@ import './WorkoutCalendarStyles.css';
 
 // 🔥 Firebase Imports
 import { db, auth } from './firebase';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, addDoc as firebaseAddDoc, collection as firebaseCollection, arrayUnion, serverTimestamp, } from 'firebase/firestore';
+import { differenceInCalendarDays } from 'date-fns'; // install with: npm i date-fns
+
 
 // 🔽 WorkoutTab Component Starts
 export default function WorkoutTab() {
@@ -36,6 +40,9 @@ export default function WorkoutTab() {
   const [showGymModal, setShowGymModal] = useState(false);
   const [workoutStartTime, setWorkoutStartTime] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const lbsRefs = useRef({});
+  const repsRefs = useRef({});
+  const checkRefs = useRef({});
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [showNoteModal, setShowNoteModal] = useState(null);
   const [showRestTimer, setShowRestTimer] = useState(null);
@@ -43,6 +50,8 @@ export default function WorkoutTab() {
   const [restDurations, setRestDurations] = useState(() => {
     const saved = localStorage.getItem('exerciseRestDurations');
     return saved ? JSON.parse(saved) : {};
+
+
 
     
     
@@ -67,6 +76,13 @@ export default function WorkoutTab() {
   const [pendingRestTrigger, setPendingRestTrigger] = useState(false);
   const [showWorkoutSummary, setShowWorkoutSummary] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
+  const [distanceByType, setDistanceByType] = useState({
+    Walking: 0,
+    Running: 0,
+    Cycling: 0,
+    Other: 0
+  });
+  
 
 
 
@@ -102,6 +118,10 @@ export default function WorkoutTab() {
 
         setTotalWeight(data.totalWeight || 0);
         setTotalDistance(data.totalDistance || 0);
+        if (data.totalDistanceByType) {
+          setDistanceByType(data.totalDistanceByType);
+        }
+        
       }
     };
 
@@ -189,6 +209,13 @@ useEffect(() => {
       const now = Date.now();
       setWorkoutStartTime(now);
       localStorage.setItem('workoutStartTime', now.toString());
+    }
+
+    // 🆕 NEW: Update Firestore status
+    const user = auth.currentUser;
+    if (user) {
+      const userRef = doc(db, 'users', user.uid);
+      updateDoc(userRef, { workingOut: true });
     }
   }
 }, [selectedExercises]);
@@ -334,7 +361,7 @@ const toggleComplete = (exerciseIdx, setIdx) => {
 };
 
 // 🛑 Cancels the current workout session and clears all related local state and storage
-const cancelWorkout = () => {
+const cancelWorkout = async () => {
   setSelectedExercises([]);
   setWorkoutStartTime(null);
   setElapsedTime(0);
@@ -342,11 +369,47 @@ const cancelWorkout = () => {
   localStorage.removeItem('workoutStartTime');
   localStorage.removeItem('currentWorkoutName');
 
+  const user = auth.currentUser;
+  if (user) {
+    await updateDoc(doc(db, 'users', user.uid), { workingOut: false });
+  }
 };
 
-// Finished the workout session and Stores information + Workout Summary Highlights and Ai fact
+
+
+const calculateDistanceByType = (exercises) => {
+  const distanceData = {
+    Walking: 0,
+    Running: 0,
+    Cycling: 0,
+    Other: 0,
+  };
+
+  exercises.forEach(ex => {
+    if (ex.sets) {
+      ex.sets.forEach(set => {
+        const dist = parseFloat(set.distance) || 0;
+
+        if (ex.name.toLowerCase().includes('walk')) {
+          distanceData.Walking += dist;
+        } else if (ex.name.toLowerCase().includes('run')) {
+          distanceData.Running += dist;
+        } else if (ex.name.toLowerCase().includes('bike') || ex.name.toLowerCase().includes('cycle')) {
+          distanceData.Cycling += dist;
+        } else {
+          distanceData.Other += dist;
+        }
+      });
+    }
+  });
+
+  return distanceData;
+};
+
+
 const finishWorkout = async () => {
   const totalWeight = calculateTotalWeight(selectedExercises);
+  const distanceByType = calculateDistanceByType(selectedExercises);
 
   const cardioSets = selectedExercises
     .filter(e => cardioExercises.includes(e.name))
@@ -359,21 +422,27 @@ const finishWorkout = async () => {
     return (speed > best.speed) ? { distance, time, speed } : best;
   }, { distance: 0, time: 0, speed: 0 });
 
-  const allSets = selectedExercises.flatMap(e => e.sets || []);
+  const allSets = selectedExercises.flatMap(ex =>
+    (ex.sets || []).map(set => ({ ...set, exerciseName: ex.name }))
+  );
+  
   const topSets = [...allSets]
     .filter(set => parseFloat(set.weight) > 0 && parseInt(set.reps) > 0)
-    .sort((a, b) => (parseFloat(b.weight) * parseInt(b.reps)) - (parseFloat(a.weight) * parseInt(a.reps)))
+    .sort((a, b) =>
+      (parseFloat(b.weight) * parseInt(b.reps)) - (parseFloat(a.weight) * parseInt(a.reps))
+    )
     .slice(0, 3);
+  
 
-  const completedWorkout = {
-    name: workoutName || `Workout - ${new Date().toLocaleDateString()}`,
-    timestamp: Date.now(),
-    duration: elapsedTime,
-    exercises: selectedExercises,
-    totalWeight,
-  };
+    const completedWorkout = {
+      name: workoutName?.trim() || "Today's Workout",
+      timestamp: Date.now(),
+      duration: elapsedTime,
+      exercises: selectedExercises,
+      totalWeight,
+    };
+    
 
-  // Save last used sets to localStorage
   const lastSets = JSON.parse(localStorage.getItem('lastUsedSets') || '{}');
   selectedExercises.forEach(ex => {
     if (ex.sets?.length > 0) {
@@ -382,24 +451,87 @@ const finishWorkout = async () => {
   });
   localStorage.setItem('lastUsedSets', JSON.stringify(lastSets));
 
-  // Save workout to history
-  const updatedHistory = [...workoutHistory, completedWorkout];
+  const updatedHistory = [completedWorkout, ...workoutHistory];
   setWorkoutHistory(updatedHistory);
   localStorage.setItem('workoutHistory', JSON.stringify(updatedHistory));
 
   const user = auth.currentUser;
   if (user) {
     const userRef = doc(db, 'users', user.uid);
-    await updateDoc(userRef, { workoutHistory: updatedHistory });
+    const userSnap = await getDoc(userRef);
+    const userData = userSnap.exists() ? userSnap.data() : {};
+
+    let lastWorkoutDate = userData.lastWorkoutDate ? new Date(userData.lastWorkoutDate) : null;
+    let newStreak = userData.workoutStreak || 0;
+
+    const today = new Date();
+    const dayDiff = lastWorkoutDate ? Math.floor((today - lastWorkoutDate) / (1000 * 60 * 60 * 24)) : null;
+    if (dayDiff !== null && dayDiff > 7) newStreak = 0;
+    newStreak += 1;
+
+    await updateDoc(userRef, {
+      workoutHistory: updatedHistory,
+      totalDistanceByType: distanceByType,
+      totalWeight,
+      totalDistance,
+      lastWorkoutDate: today.toISOString(),
+      workoutStreak: newStreak,
+    });
+
+    // 🔓 Title Achievements Check
+    const unlocked = new Set(userData.unlockedTitles || []);
+    TITLE_ACHIEVEMENTS.forEach(({ title, condition }) => {
+      if (condition({
+        workoutStreak: updatedHistory.length,
+        totalDistance,
+        totalWeight
+      })) {
+        unlocked.add(title);
+      }
+    });
+
+    await updateDoc(userRef, {
+      unlockedTitles: Array.from(unlocked),
+    });
+
+    const newlyUnlocked = TITLE_ACHIEVEMENTS
+      .filter(({ title, condition }) =>
+        condition({
+          workoutStreak: updatedHistory.length,
+          totalDistance,
+          totalWeight
+        }) && !userData.unlockedTitles?.includes(title)
+      )
+      .map(({ title }) => title);
+
+    for (const title of newlyUnlocked) {
+      await firebaseAddDoc(firebaseCollection(db, 'posts'), {
+        userId: 'dKdmdsLKsTY51nFmqHjBWepZgDp2', // LVLD account UID
+        content: `🎉 Congrats @${userData.handle || 'user'} on unlocking the title **"${title}"**!\nKeep grinding! 💪`,
+        timestamp: Date.now(),
+        reactions: {},
+        deleted: false,
+      });
+    }
   }
 
-  try {
-    const seed = Math.floor(Math.random() * 10000);
-    const contextPrompt = topCardio.distance > 0
-        ? `Give me an interesting, fitness-related fact about running ${topCardio.distance} miles. Focus on health benefits, endurance stats, average times, or calorie burn. Keep it short, motivational, and informative. Ref: ${seed}`
-        : `Give me an interesting, fitness-related fact about lifting ${totalWeight} pounds. Include strength comparisons, training effects, calorie burn, or world record trivia. Keep it concise, motivational, and informative. Ref: ${seed}`;
-    
-  
+
+
+
+  let fact = 'YOU ARE A BEAST!';
+try {
+  const didLift = selectedExercises.some(ex =>
+    ex.sets?.some(set => parseFloat(set.weight || 0) > 0)
+  );
+  const didCardio = topCardio?.distance > 0;
+
+  const contextPrompt = `Give me a short, powerful motivational quote for someone who ${
+    didLift ? `lifted a total of ${totalWeight.toLocaleString()} lbs` : ''
+  }${
+    didLift && didCardio ? ' and ' : ''
+  }${
+    didCardio ? `ran or walked ${topCardio.distance} miles` : ''
+  }. Make it hype, personal, and avoid repetition. Feel like it’s talking to a gym warrior.`
     const funFactRes = await fetch(
       import.meta.env.DEV
         ? 'http://localhost:3000/api/getFunFact'
@@ -410,45 +542,80 @@ const finishWorkout = async () => {
         body: JSON.stringify({ prompt: contextPrompt })
       }
     );
-  
+
     const json = await funFactRes.json();
-    const fact = json.fact || '';
-  
-  
-    setSummaryData({
-      name: completedWorkout.name,
-      date: new Date().toLocaleDateString(),
-      totalWeight,
-      topSets,
-      topCardio,
-      funFact: fact
-    });
+    fact = json.fact || fact;
   } catch (err) {
-    console.error('Fun fact fetch failed', err);
-    setSummaryData({
-      name: completedWorkout.name,
-      date: new Date().toLocaleDateString(),
-      totalWeight,
-      topSets,
-      topCardio,
-      funFact: 'No fact this time!'
-    });
+    console.error('Quote fetch failed', err);
+  }
+
+  const formattedExercises = selectedExercises.map(ex => {
+    const sets = ex.sets || [];
+    const maxPR = Math.max(...sets.map(s => (parseFloat(s.weight || 0) * parseInt(s.reps || 0))));
+    const setsWithPR = sets.map(s => ({
+      ...s,
+      isPR: (parseFloat(s.weight || 0) * parseInt(s.reps || 0)) === maxPR
+    }));
+    return { ...ex, sets: setsWithPR };
+  });
+
+  const postContentLines = [
+    `🏋️ ${completedWorkout.name} (${new Date().toLocaleDateString()})`,
+    `🔥 Total Weight: ${totalWeight.toLocaleString()} lbs`,
+  ];
+  
+  if (topCardio?.distance > 0) {
+    postContentLines.push(`📏 Distance: ${topCardio.distance.toFixed(2)} mi`);
   }
   
+  
+  // Add full workout breakdown
+  selectedExercises.forEach((ex) => {
+    postContentLines.push(`\n${ex.name}`);
+    ex.sets.forEach((set) => {
+      if (set.weight && set.reps) {
+        postContentLines.push(`• ${set.weight} lbs × ${set.reps} reps`);
+      } else if (set.distance && set.time) {
+        postContentLines.push(`• ${set.distance} mi in ${set.time} min`);
+      }
+    });
+  });
+  
+  await firebaseAddDoc(firebaseCollection(db, 'posts'), {
+    userId: user.uid,
+    content: postContentLines.join('\n'),
+    timestamp: serverTimestamp(),
+    reactions: {},
+    deleted: false,
+    type: 'workout', // ← mark this as a workout post
+    exercises: formattedExercises // used by PostCard dropdown
+  });
+  
+  // 🆕 After finishing, mark user as NOT working out
+  await updateDoc(doc(db, 'users', user.uid), { workingOut: false });
+
+
+  setSummaryData({
+    name: completedWorkout.name,
+    date: new Date().toLocaleDateString(),
+    totalWeight,
+    topSets,
+    topCardio,
+    exercises: formattedExercises,
+    funFact: fact
+  });
+
+
+
 
   setShowWorkoutSummary(true);
-
-  // Reset state
   setSelectedExercises([]);
   setWorkoutName('');
   setWorkoutStartTime(null);
   localStorage.removeItem('activeWorkout');
   localStorage.removeItem('workoutStartTime');
   localStorage.removeItem('currentWorkoutName');
-
 };
-
-
 
 
 // ❌ Deletes a workout from local state and Firebase by index
@@ -498,7 +665,7 @@ return (
       <>
         {/* 🔘 Start a custom workout */}
         <button
-          onClick={() => setShowPicker(true)}
+          onClick={() => setShowPicker('new')}
           className="w-full bg-red-500 hover:bg-red-700 py-3 rounded text-lg font-bold mb-4"
         >
           Start Custom Workout
@@ -585,7 +752,7 @@ return (
                         {new Date(workout.timestamp).toLocaleDateString()} • {new Date(workout.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                       <p className="text-sm text-gray-400">
-                        Duration: {workout.duration || 'N/A'} • Total Weight: {workout.totalWeight || 0} lbs
+                        • Total Weight: {workout.totalWeight || 0} lbs
                       </p>
                     </div>
 
@@ -596,13 +763,21 @@ return (
                           const shareText = `
 Workout: ${workout.name}
 Date: ${new Date(workout.timestamp).toLocaleString()}
-Duration: ${workout.duration || 'N/A'} mins
 Total Weight: ${workout.totalWeight || 0} lbs
 
 Exercises:
-${workout.exercises.map(ex =>
-  `- ${ex.name}: \n ${ex.sets.map(set => `${set.weight} lbs - ${set.reps} reps`).join('\n ')}`
-).join('\n')}
+${workout.exercises.map(ex => {
+  const isCardio = cardioExercises.includes(ex.name);
+  const setLines = ex.sets.map((set, idx) => {
+    if (isCardio) {
+      return `${set.distance || 0} mi in ${set.time || 0} min`;
+    } else {
+      return `${set.weight || 0} lbs x ${set.reps || 0} reps`;
+    }
+  }).join('\n ');
+  return `- ${ex.name}:\n ${setLines}`;
+}).join('\n')}
+
                           `.trim();
 
                           if (navigator.share) {
@@ -627,16 +802,19 @@ ${workout.exercises.map(ex =>
 
                   {/* 🏋️ List of exercises and sets for that workout */}
                   <div className="mt-2 text-sm">
-                    {workout.exercises.map((ex, idx) => (
-                      <div key={idx} className="mb-2">
-                        <p className="font-semibold">{ex.name}</p>
-                        {ex.sets.map((set, i) => (
-                          <p key={i} className="text-gray-300 ml-4">
-                            {set.tag ? `${set.tag}` : `Set ${i + 1}`} : {set.weight} lbs - {set.reps} reps
-                          </p>
-                        ))}
-                      </div>
-                    ))}
+                  {workout.exercises.map((ex, idx) => (
+                    <div key={idx} className="mb-2">
+                      <p className="font-semibold">{ex.name}</p>
+                      {ex.sets.map((set, i) => (
+                        <p key={i} className="text-gray-300 ml-4">
+                          {cardioExercises.includes(ex.name)
+                            ? `${set.distance || 0} mi in ${set.time || 0} min`
+                            : `${set.tag ? `${set.tag} • ` : ''}${set.weight || 0} lbs x ${set.reps || 0} reps`}
+                        </p>
+                      ))}
+                    </div>
+                  ))}
+
                   </div>
                 </div>
               ))
@@ -733,119 +911,126 @@ ${workout.exercises.map(ex =>
 
         {/* 🔄 Loop through sets within this exercise */}
         {(exercise.sets || []).map((set, setIdx) => (
-          <div key={setIdx} className="flex items-center gap-2 mb-2">
-            {/* 🔖 Tag button (Set #, WU, DS, F) */}
-            <div className="relative w-14">
+  <div key={setIdx} className="flex items-center gap-2 mb-2">
+    {/* 🔖 Set tag button */}
+    <div className="relative w-14">
+      <button
+        onClick={() => setActiveSetTag({ exerciseIdx, setIdx })}
+        className="text-sm text-gray-400 text-left w-full"
+      >
+        {set.tag === 'Warm-Up'
+          ? 'WU'
+          : set.tag === 'Drop Set'
+          ? 'DS'
+          : set.tag === 'Failure'
+          ? 'F'
+          : `Set ${getWorkingSetNumber(exercise.sets, setIdx)}`}
+      </button>
+
+      {/* 🏷️ Tag selector dropdown */}
+      {activeSetTag &&
+        activeSetTag.exerciseIdx === exerciseIdx &&
+        activeSetTag.setIdx === setIdx && (
+          <div className="absolute left-0 top-6 bg-gray-800 border border-gray-700 p-2 rounded shadow z-30 w-32">
+            {['Warm-Up', 'Drop Set', 'Failure', ''].map((tagOption) => (
               <button
-                onClick={() => setActiveSetTag({ exerciseIdx, setIdx })}
-                className="text-sm text-gray-400 text-left w-full"
+                key={tagOption || 'None'}
+                onClick={() => {
+                  updateSetValue(exerciseIdx, setIdx, 'tag', tagOption);
+                  setActiveSetTag(null);
+                }}
+                className="block w-full text-left text-sm py-1 hover:bg-gray-700 text-white"
               >
-                {set.tag === 'Warm-Up'
-                  ? 'WU'
-                  : set.tag === 'Drop Set'
-                  ? 'DS'
-                  : set.tag === 'Failure'
-                  ? 'F'
-                  : `Set ${getWorkingSetNumber(exercise.sets, setIdx)}`}
+                {tagOption || 'None'}
               </button>
+            ))}
+          </div>
+        )}
+    </div>
 
-              {/* 🏷️ Tag selector dropdown */}
-              {activeSetTag &&
-                activeSetTag.exerciseIdx === exerciseIdx &&
-                activeSetTag.setIdx === setIdx && (
-                  <div className="absolute left-0 top-6 bg-gray-800 border border-gray-700 p-2 rounded shadow z-30 w-32">
-                    {['Warm-Up', 'Drop Set', 'Failure', ''].map((tagOption) => (
-                      <button
-                        key={tagOption || 'None'}
-                        onClick={() => {
-                          updateSetValue(exerciseIdx, setIdx, 'tag', tagOption);
-                          setActiveSetTag(null);
-                        }}
-                        className="block w-full text-left text-sm py-1 hover:bg-gray-700 text-white"
-                      >
-                        {tagOption || 'None'}
-                      </button>
-                    ))}
-                  </div>
-                )}
-            </div>
-            {/*  👟 Conditional input fields depending on cardio or strength exercise */}
-{cardioExercises.includes(exercise.name) ? (
-  // 🏃 If this is a cardio exercise, show Distance + Time inputs
+
+{!cardioExercises.includes(exercise.name) && (
   <>
+    {/* LBS */}
     <input
-      type="text"
-      placeholder="Distance (mi/km)"
-      value={set.distance || ''}
-      onChange={(e) =>
-        updateSetValue(exerciseIdx, setIdx, 'distance', e.target.value)
-      }
-      className="bg-gray-700 rounded px-2 py-1 text-sm w-24"
+      ref={(el) => (lbsRefs.current[`${exerciseIdx}-${setIdx}`] = el)}
+      type="number"
+      placeholder={(() => {
+        const last = JSON.parse(localStorage.getItem('lastUsedSets') || '{}')[exercise.name]?.[setIdx];
+        return last?.weight ? `${last.weight} lbs` : 'lbs';
+      })()}
+      value={set.weight}
+      onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'weight', e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') repsRefs.current[`${exerciseIdx}-${setIdx}`]?.focus();
+      }}
+      className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
     />
+
+    {/* REPS */}
     <input
-      type="text"
-      placeholder="Time (min)"
-      value={set.time || ''}
-      onChange={(e) =>
-        updateSetValue(exerciseIdx, setIdx, 'time', e.target.value)
-      }
-      className="bg-gray-700 rounded px-2 py-1 text-sm w-24"
+      ref={(el) => (repsRefs.current[`${exerciseIdx}-${setIdx}`] = el)}
+      type="number"
+      placeholder={(() => {
+        const last = JSON.parse(localStorage.getItem('lastUsedSets') || '{}')[exercise.name]?.[setIdx];
+        return last?.reps ? `${last.reps} reps` : 'reps';
+      })()}
+      value={set.reps}
+      onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'reps', e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') checkRefs.current[`${exerciseIdx}-${setIdx}`]?.click();
+      }}
+      className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
     />
-  </>
-) : (
-  // 🏋️ If strength training, show Weight + Reps inputs
-  <>
-    {/* LBS input with last used as placeholder */}
-<input
-  type="number"
-  placeholder={
-    (() => {
-      const last = JSON.parse(localStorage.getItem('lastUsedSets') || '{}')[exercise.name]?.[setIdx];
-      return last?.weight ? ` ${last.weight} lbs` : 'lbs';
-    })()
-  }
-  value={set.weight}
-  onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'weight', e.target.value)}
-  className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
-/>
-
-{/* REPS input with last used as placeholder */}
-<input
-  type="number"
-  placeholder={
-    (() => {
-      const last = JSON.parse(localStorage.getItem('lastUsedSets') || '{}')[exercise.name]?.[setIdx];
-      return last?.reps ? ` ${last.reps} reps` : 'reps';
-    })()
-  }
-  value={set.reps}
-  onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'reps', e.target.value)}
-  className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
-/>
-
-
   </>
 )}
 
-{/* ✅ Complete set toggle */}
-<button
-  onClick={() => toggleComplete(exerciseIdx, setIdx)}
-  className={`text-lg px-3 py-1 rounded font-bold ${
-    set.completed ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-300'
-  }`}
->
-  ✔
-</button>
+    {/* ✅ Check */}
+    <button
+      ref={(el) => (checkRefs.current[`${exerciseIdx}-${setIdx}`] = el)}
+      onClick={() => toggleComplete(exerciseIdx, setIdx)}
+      className={`text-lg px-3 py-1 rounded font-bold ${
+        set.completed ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-300'
+      }`}
+    >
+      ✔
+    </button>
 
-{/* ❌ Remove set */}
-<button
-  onClick={() => removeSet(exerciseIdx, setIdx)}
-  className="text-red-400 text-lg px-2"
->
-  ✖
-</button>
-</div>
+    {/* Cardio Inputs or Delete Button */}
+    {cardioExercises.includes(exercise.name) ? (
+      <>
+        <input
+          type="text"
+          placeholder="Distance (mi/km)"
+          value={set.distance || ''}
+          onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'distance', e.target.value)}
+          className="bg-gray-700 rounded px-2 py-1 text-sm w-24"
+        />
+        <input
+          type="text"
+          placeholder="Time (min)"
+          value={set.time || ''}
+          onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'time', e.target.value)}
+          className="bg-gray-700 rounded px-2 py-1 text-sm w-24"
+        />
+        <button
+          onClick={() => removeSet(exerciseIdx, setIdx)}
+          className="text-red-400 text-lg px-2"
+        >
+          ✖
+        </button>
+      </>
+    ) : (
+      <button
+        onClick={() => removeSet(exerciseIdx, setIdx)}
+        className="text-red-400 text-lg px-2"
+      >
+        ✖
+      </button>
+    )}
+  </div>
 ))}
+
 
 {/* ➕ Add a new set to this exercise */}
 <button
@@ -898,25 +1083,13 @@ ${workout.exercises.map(ex =>
 {showPicker && (
   <ExercisePickerModal
     selectedExercises={selectedExercises}
-    setSelectedExercises={(newExercises) => {
-      if (!Array.isArray(newExercises)) return;
-      // 🔁 If user is replacing an existing exercise (via "Replace Exercise")
-      if (typeof showPicker === 'object' && showPicker.replaceIdx !== undefined) {
-        const updated = [...selectedExercises];
-        newExercises.forEach((ex, i) => {
-          updated.splice(showPicker.replaceIdx + i, 1, ex);
-        });
-        setSelectedExercises(updated);
-      } else {
-        // ➕ Otherwise, append selected exercises to the list
-        setSelectedExercises([...selectedExercises, ...newExercises]);
-      }
-      setShowPicker(false); // ✅ Close picker after selection
-    }}
+    setSelectedExercises={setSelectedExercises}
+    showPicker={showPicker} // 👈 ADD THIS
     onClose={() => setShowPicker(false)}
     exerciseList={exerciseList}
   />
 )}
+
 
 {/* 📝 Modal for adding/editing notes for a specific exercise */}
 {showNoteModal !== null && (
