@@ -14,6 +14,8 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [showTerms, setShowTerms] = useState(false);
   const [agree, setAgree] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -21,6 +23,11 @@ export default function Signup() {
 
     if (!agree) {
       setError('You must agree to the terms to continue.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
       return;
     }
 
@@ -123,6 +130,17 @@ export default function Signup() {
           onChange={(e) => setPassword(e.target.value)}
           className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600"
         />
+
+        <input
+          type="password"
+          placeholder="Confirm Password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600"
+        />
+
+
+
 
         <label className="text-sm flex items-center space-x-2">
           <input

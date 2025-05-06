@@ -10,6 +10,8 @@ import CommentSection from './CommentSection';
 
 
 
+
+
 export default function PostCard({ post, showFollowOption = false, currentUserId, following = [] }) {
   const [username, setUsername] = useState('User');
   const [profilePic, setProfilePic] = useState('/default-avatar.png');
@@ -22,12 +24,44 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
   const [hideInDiscovery, setHideInDiscovery] = useState(false);
   const [userTitle, setUserTitle] = useState('');
   const [showFullWorkout, setShowFullWorkout] = useState(false);
+  const [linkPreview, setLinkPreview] = useState(null);
 
 
 
-
-
-
+  function linkify(text) {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.split(urlRegex).map((part, i) =>
+      urlRegex.test(part) ? (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-400 underline break-all"
+        >
+          {part}
+        </a>
+      ) : (
+        part
+      )
+    );
+  }
+  
+  useEffect(() => {
+    const urlMatch = post.content?.match(/https?:\/\/[^\s]+/);
+    if (urlMatch) {
+      fetch('/api/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlMatch[0] }),
+      })
+        .then(res => res.json())
+        .then(data => setLinkPreview(data))
+        .catch(err => console.error('Preview error:', err));
+    }
+  }, [post.content]);
+  
+  
   useEffect(() => {
     const fetchUser = async () => {
       const snap = await getDoc(doc(db, 'users', post.userId));
@@ -255,7 +289,30 @@ if (hideInDiscovery) return null;
   */}
 
 
-      <p className="text-white mb-2 whitespace-pre-line">{post.content}</p>
+      <p className="text-white mb-2 whitespace-pre-line">{linkify(post.content)}</p>
+
+      {linkPreview && (
+        <div className="bg-gray-900 border border-gray-700 rounded p-3 mt-2">
+          {linkPreview.images?.[0] && (
+            <img
+              src={linkPreview.images[0]}
+              alt="preview"
+              className="w-full h-48 object-cover rounded mb-2"
+            />
+          )}
+          <a
+            href={linkPreview.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 text-lg font-bold block mb-1"
+          >
+            {linkPreview.title}
+          </a>
+          <p className="text-gray-300 text-sm">{linkPreview.description}</p>
+        </div>
+      )}
+
+
 
       {post.mediaUrl && post.mediaType === 'image' && (
         <img src={post.mediaUrl} alt="post" className="rounded w-full max-h-96 object-cover mb-2" />

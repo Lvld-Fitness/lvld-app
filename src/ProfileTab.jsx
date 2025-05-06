@@ -308,8 +308,17 @@ const recalculateDistanceByType = (history) => {
       const credential = EmailAuthProvider.credential(email, password);
       await reauthenticateWithCredential(user, credential);
   
-      await deleteDoc(doc(db, 'users', user.uid));
-      await deleteUser(user);
+      const userRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+      const userData = userSnap.exists() ? userSnap.data() : null;
+      const handle = userData?.handle?.replace(/^@/, '').toLowerCase();
+  
+      await deleteDoc(userRef); // Delete user doc
+      if (handle) {
+        await deleteDoc(doc(db, 'handles', handle)); // Delete handle entry
+      }
+  
+      await deleteUser(user); // Delete auth account
   
       alert("Account deleted.");
       navigate('/signup');
@@ -318,6 +327,7 @@ const recalculateDistanceByType = (history) => {
       alert("Failed to delete account. Password may be incorrect.");
     }
   };
+  
 
 
   return (
