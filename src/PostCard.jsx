@@ -50,19 +50,21 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
   useEffect(() => {
     const urlMatch = post.content?.match(/https?:\/\/[^\s]+/);
     if (urlMatch) {
-      fetch('https://lvld-app.vercel.app/api/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: urlMatch[0] }),
-      })
-        .then(async res => {
-          if (!res.ok) throw new Error('Preview fetch failed');
-          return res.json();
+      fetch(`https://api.microlink.io/?url=${encodeURIComponent(urlMatch[0])}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success') {
+            setLinkPreview({
+              title: data.data.title,
+              ogImage: data.data.image?.url,
+              url: data.data.url
+            });
+          }
         })
-        .then(data => setLinkPreview(data))
         .catch(err => console.error('Preview error:', err));
     }
   }, [post.content]);
+  
   
   
   
