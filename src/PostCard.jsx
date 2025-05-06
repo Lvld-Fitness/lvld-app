@@ -291,11 +291,11 @@ if (hideInDiscovery) return null;
 
       <p className="text-white mb-2 whitespace-pre-line">{linkify(post.content)}</p>
 
-      {linkPreview && (
+      {linkPreview?.title && (
         <div className="bg-gray-900 border border-gray-700 rounded p-3 mt-2">
-          {linkPreview.images?.[0] && (
+          {linkPreview.ogImage && (
             <img
-              src={linkPreview.images[0]}
+              src={linkPreview.ogImage}
               alt="preview"
               className="w-full h-48 object-cover rounded mb-2"
             />
@@ -304,13 +304,13 @@ if (hideInDiscovery) return null;
             href={linkPreview.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-400 text-lg font-bold block mb-1"
+            className="text-blue-400 text-lg font-bold block break-all mb-1"
           >
             {linkPreview.title}
           </a>
-          <p className="text-gray-300 text-sm">{linkPreview.description}</p>
         </div>
       )}
+
 
 
 
