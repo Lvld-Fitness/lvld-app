@@ -241,26 +241,54 @@ const recalculateDistanceByType = (history) => {
   }, [xp]);
 
 //Notifications
-  <div className="mt-6">
-  <h2 className="text-xl font-bold mb-2">Notifications</h2>
+<div className="bg-gray-900 rounded-lg p-4 mt-4 mx-auto w-full max-w-xl text-center">
+  <h3 className="text-lg font-bold text-white mb-2">🔔 Notifications</h3>
+
   {notifications.length === 0 ? (
-    <p className="text-gray-400 text-sm">No notifications yet.</p>
+    <p className="text-gray-400">No notifications yet.</p>
   ) : (
-    notifications.map(n => (
+    notifications.map((notif) => (
       <div
-        key={n.id}
+        key={notif.id}
         onClick={async () => {
-          await updateDoc(doc(db, 'users', uid, 'notifications', n.id), { read: true });
-          navigate(`/post/${n.postId}`);
+          const notifRef = doc(db, 'users', auth.currentUser.uid, 'notifications', notif.id);
+          
+          // Delete the notification after clicking
+          await deleteDoc(notifRef);
+
+          if (notif.postId) {
+            window.location.href = `/post/${notif.postId}`;
+          }
         }}
-        className="p-3 mb-2 bg-gray-800 rounded hover:bg-gray-700 cursor-pointer"
+        className="bg-gray-800 p-3 rounded mb-2 hover:bg-gray-700 cursor-pointer flex items-center justify-between"
       >
-        <div className="text-sm text-white">You were mentioned in a post</div>
-        <div className="text-xs text-gray-400">{new Date(n.timestamp).toLocaleString()}</div>
+        <div className="text-sm text-white mx-auto">
+          {notif.type === 'reaction' && (
+            <p>
+              <span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> reacted to your post! 🔥
+            </p>
+          )}
+          {notif.type === 'comment' && (
+            <p>
+              <span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> commented on your post! 💬
+            </p>
+          )}
+          {notif.type === 'mention' && (
+            <p>
+              <span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> mentioned you! 🏷️
+            </p>
+          )}
+        </div>
+        {!notif.read && (
+          <div className="w-3 h-3 rounded-full bg-red-500"></div>
+        )}
       </div>
     ))
   )}
 </div>
+
+
+
 
 
   const handleImageChange = (e) => {

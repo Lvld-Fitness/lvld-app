@@ -1,17 +1,15 @@
-// AppLayout.jsx
 import { Outlet } from 'react-router-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { House, Barbell, UsersThree, ChatCircleDots } from 'phosphor-react';
-import { onSnapshot, collection } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { useState, useEffect } from 'react';
-
 
 export default function AppLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [hasUnreadNotif, setHasUnreadNotif] = useState(false);
-
+  const [newFeedPost, setNewFeedPost] = useState(false);
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -24,6 +22,45 @@ export default function AppLayout({ children }) {
     );
     return () => unsub();
   }, []);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const unsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const following = data.following || [];
+
+      if (following.length > 0) {
+        const feedQuery = query(
+          collection(db, 'posts'),
+          where('userId', 'in', following),
+          orderBy('timestamp', 'desc'),
+          limit(1)
+        );
+
+        const unsubFeed = onSnapshot(feedQuery, (postSnap) => {
+          const lastPost = postSnap.docs[0]?.data();
+          const lastChecked = parseInt(localStorage.getItem('lastFeedCheck')) || 0;
+
+          if (lastPost && lastPost.timestamp?.toMillis() > lastChecked) {
+            setNewFeedPost(true);
+          }
+        });
+
+        return () => unsubFeed();
+      }
+    });
+
+    return () => unsub();
+  }, []);
+
+  const handleFeedClick = () => {
+    setNewFeedPost(false);
+    localStorage.setItem('lastFeedCheck', Date.now().toString());
+    navigate('/feed');
+  };
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
@@ -48,10 +85,15 @@ export default function AppLayout({ children }) {
         </button>
 
         <button
-          onClick={() => navigate('/feed')}
-          className={`flex flex-col items-center text-sm ${location.pathname.includes('/feed') ? 'text-red-500' : 'text-gray-400'}`}
+          onClick={handleFeedClick}
+          className={`flex flex-col items-center text-sm relative ${location.pathname.includes('/feed') ? 'text-red-500' : 'text-gray-400'}`}
         >
-          <ChatCircleDots size={24} />
+          <div className="relative">
+            <ChatCircleDots size={24} />
+            {newFeedPost && (
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+            )}
+          </div>
           Feed
         </button>
 
@@ -67,7 +109,6 @@ export default function AppLayout({ children }) {
           </div>
           Home
         </button>
-
       </nav>
     </div>
   );
