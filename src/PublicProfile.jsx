@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { db, auth } from './firebase';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import PostCard from './PostCard';
+import RankIcon from "./RankIcon";
+
 
 export default function PublicProfile() {
   const { uid } = useParams();
@@ -25,7 +27,16 @@ export default function PublicProfile() {
         const userData = snap.data();
         setData(userData);
         setSelectedTitle(userData.selectedTitle || '');
-
+  
+        // Calculate the number of workouts completed
+        const workoutHistory = userData.workoutHistory || [];
+        const workoutCount = workoutHistory.length;
+  
+        setData((prev) => ({
+          ...prev,
+          workoutCount,
+        }));
+  
       } else {
         console.log('❌ No user found for UID:', uid);
       }
@@ -33,6 +44,7 @@ export default function PublicProfile() {
     };
     fetchUser();
   }, [uid]);
+  
 
   useEffect(() => {
     const q = query(collection(db, 'posts'), where('userId', '==', uid), orderBy('timestamp', 'desc'));
@@ -88,11 +100,27 @@ export default function PublicProfile() {
       <div className="flex flex-col items-center">
         <img src={data.profilePic || '/default-avatar.png'} className="w-28 h-28 rounded-full border-4 border-gray-700 object-cover" alt="avatar" />
         <h1 className="text-3xl font-bold mt-4">{data.name}</h1>
+        <p className="text-3xl font-bold text-red-500">{data.handle}</p>
         {selectedTitle && (
           <p className="text-yellow-400 font-bold text-md">{selectedTitle}</p>
         )}
-        <p className="text-lg text-red-400">{data.handle}</p>
         <p className="text-center text-gray-300 max-w-md mt-2">{data.bio || 'This user has no bio.'}</p>
+
+        <div className="flex items-center gap-3 mt-4">
+          <div className="text-lg font-extrabold text-white flex items-center gap-2">
+            <RankIcon rank={data?.rank} size={50} /> {/* Use data?.rank to avoid errors */}
+            <div className="flex flex-col">
+              {data?.rank && (  /* Safely check if rank exists */
+                <span className="text-3xl text-gray-400 uppercase">
+                  {data.rank.replace("_", " ")}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+
+
 
         {currentUser?.uid !== uid && (
           <button
@@ -112,14 +140,19 @@ export default function PublicProfile() {
             <p className="text-2xl font-extrabold">{(data.totalWeight || 0).toLocaleString()} lbs</p>
             <p className="text-gray-400 text-xs mt-1">TOTAL WEIGHT</p>
           </div>
+
+          <div>
+            <p className="text-2xl font-extrabold text-red-500">
+              {data?.workoutCount || 0}
+            </p>
+            <h3 className="text-gray-400 text-xs mt-1">WORKOUTS COMPLETED</h3>
+          </div>
+
           <div>
             <p className="text-2xl font-extrabold">Level {level}</p>
             <p className="text-gray-400 text-xs mt-1">ACCOUNT LEVEL</p>
           </div>
-          <div>
-            <p className="text-2xl font-extrabold text-red-500">{(data.followers || []).length}</p>
-            <p className="text-gray-400 text-xs mt-1">FOLLOWERS</p>
-          </div>
+
         </div>
 
         <div className="mt-6 text-center w-full max-w-md">

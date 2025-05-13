@@ -1,6 +1,23 @@
 // updateRankingAfterWorkout.js
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
+
+// Define season dates
+const SEASONS = [
+  { name: "Beta Season", start: new Date("2025-05-01"), end: new Date("2025-07-31") },
+  { name: "Season 1", start: new Date("2025-08-01"), end: new Date("2025-10-31") },
+  { name: "Season 2", start: new Date("2025-11-01"), end: new Date("2026-01-31") },
+];
+
+const getCurrentSeason = () => {
+  const now = new Date();
+  for (const season of SEASONS) {
+    if (now >= season.start && now <= season.end) {
+      return season.name;
+    }
+  }
+  return "Off Season";
+};
 
 const rankTiers = [
   { tier: "bronze_1", minRP: 0 },
@@ -37,7 +54,7 @@ const rankTiers = [
   { tier: "champion_2", minRP: 30750 },
   { tier: "champion_3", minRP: 33350 },
   { tier: "champion_4", minRP: 36150 },
-  { tier: "champion_5", minRP: 39150 }
+  { tier: "champion_5", minRP: 39150 },
 ];
 
 const getRankFromRP = (rp) => {
@@ -47,6 +64,19 @@ const getRankFromRP = (rp) => {
   return "bronze_1";
 };
 
+// Reset Rank and Seasonal Data for New Season
+const resetRankForNewSeason = async (userId, currentSeason) => {
+  const userRef = doc(db, "users", userId);
+  await updateDoc(userRef, {
+    rank: "bronze_1",
+    rankRP: 0,
+    seasonTotalWeight: 0,
+    seasonTotalDistance: 0,
+    currentSeason,
+  });
+};
+
+// Main Update Function
 export const updateRankingAfterWorkout = async (userId, workout) => {
   const userRef = doc(db, "users", userId);
   const userSnap = await getDoc(userRef);
@@ -56,6 +86,15 @@ export const updateRankingAfterWorkout = async (userId, workout) => {
   const userData = userSnap.data();
   const { weightLifted, distance } = workout;
 
+  // Get current season
+  const currentSeason = getCurrentSeason();
+
+  // Check for season reset
+  if (userData.currentSeason !== currentSeason) {
+    await resetRankForNewSeason(userId, currentSeason);
+    console.log(`User ${userId} has been reset for the new season: ${currentSeason}`);
+  }
+
   // Calculate RP
   const weightRP = Math.floor(weightLifted / 100);
   const distanceRP = distance * (distance >= 1 ? 20 : 10);
@@ -63,7 +102,9 @@ export const updateRankingAfterWorkout = async (userId, workout) => {
 
   const newRP = (userData.rankRP || 0) + workoutRP;
   const newWeightTotal = (userData.seasonTotalWeight || 0) + weightLifted;
-  const newDistanceTotal = (userData.seasonTotalDistance || 0) + distance;
+
+  // ✅ Ensure distance is rounded to two decimal places to prevent float precision errors
+  const newDistanceTotal = parseFloat(((userData.seasonTotalDistance || 0) + distance).toFixed(2));
 
   // Determine new rank
   const newRank = getRankFromRP(newRP);
@@ -79,3 +120,4 @@ export const updateRankingAfterWorkout = async (userId, workout) => {
   console.log(`Workout processed. New Rank: ${newRank}, New RP: ${newRP}`);
   return newRank;
 };
+

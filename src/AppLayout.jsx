@@ -1,9 +1,11 @@
 import { Outlet } from 'react-router-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { House, Barbell, UsersThree, ChatCircleDots } from 'phosphor-react';
+import { House, Barbell, UsersThree, ChatCircleDots, ChartBar } from 'phosphor-react';
 import { doc, onSnapshot, collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { useState, useEffect } from 'react';
+
+
 
 export default function AppLayout({ children }) {
   const location = useLocation();
@@ -83,6 +85,15 @@ export default function AppLayout({ children }) {
           <UsersThree size={24} />
           Teams
         </button>
+
+        <button
+          onClick={() => navigate('/rankings')}
+          className={`flex flex-col items-center text-sm ${location.pathname.includes('/rankings') ? 'text-red-500' : 'text-gray-400'}`}
+        >
+          <ChartBar size={24} />
+          Rankings
+        </button>
+
 
         <button
           onClick={handleFeedClick}

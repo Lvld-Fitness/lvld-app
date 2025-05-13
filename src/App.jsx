@@ -14,6 +14,7 @@ import { RestTimerProvider } from './RestTimerContext';
 import { GlobalRestTimerProvider } from './GlobalRestTimerContext';
 import StoryViewer from './StoryViewer';
 import SinglePost from './SinglePost'; // if you have a SinglePost component (or whatever you named it)
+import SeasonalLeaderboard from "./SeasonalLeaderboard";
 
 
 
@@ -113,9 +114,24 @@ export default function App() {
           ) : <Navigate to="/login" />
         } />
 
+        <Route path="/rankings" element={
+          user ? (
+            <RestTimerProvider>
+              <GlobalRestTimerProvider>
+                <AppLayout>
+                  <SeasonalLeaderboard />
+                </AppLayout>
+              </GlobalRestTimerProvider>
+            </RestTimerProvider>
+          ) : <Navigate to="/login" />
+        } />
+
+
         <Route path="/story/:userId" element={<StoryViewer />} />
 
         <Route path="/post/:postId" element={<SinglePost />} />
+
+
 
       </Routes>
 

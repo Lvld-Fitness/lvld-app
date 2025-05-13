@@ -8,12 +8,14 @@ import { db, auth } from './firebase';
 import CommentInput from './CommentInput';
 import { DotsThreeVertical, ArrowBendUpLeft } from 'phosphor-react';
 import { useNavigate } from 'react-router-dom';
+import RankIcon from "./RankIcon";
 
 export default function CommentSection({ postId }) {
   const [comments, setComments] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editingText, setEditingText] = useState('');
   const navigate = useNavigate();
+  
 
   useEffect(() => {
     fetchComments();
@@ -22,7 +24,7 @@ export default function CommentSection({ postId }) {
   const fetchComments = async () => {
     const q = query(collection(db, 'posts', postId, 'comments'), orderBy('timestamp'));
     const snap = await getDocs(q);
-
+  
     const data = await Promise.all(
       snap.docs.map(async docSnap => {
         const comment = { id: docSnap.id, ...docSnap.data() };
@@ -33,14 +35,16 @@ export default function CommentSection({ postId }) {
           ...comment,
           userName: user.name || 'User',
           userHandle: user.handle || '',
-          userPic: user.profilePic || '/default-avatar.png',          
+          userPic: user.profilePic || '/default-avatar.png',
+          rank: user.rank || 'bronze_1',
           replies
         };
       })
     );
-
+  
     setComments(data);
   };
+  
 
   const fetchReplies = async (commentId) => {
     const q = query(collection(db, 'posts', postId, 'comments', commentId, 'replies'), orderBy('timestamp'));
@@ -158,9 +162,12 @@ export default function CommentSection({ postId }) {
                   className="w-6 h-6 rounded-full object-cover cursor-pointer"
                   onClick={() => navigate(`/profile/${c.userId}`)}
                 />
-                <span className="text-sm font-semibold text-white">
-                  {c.userName} {c.userHandle && <span className="text-gray-400 text-xs">{c.userHandle}</span>}
-                </span>
+
+                <div className="flex items-center gap-2">
+                  <RankIcon rank={c.rank} size={24} />
+                  <span className="text-white font-bold">{c.userName}</span>
+                </div>
+
 
               </div>
               {auth.currentUser?.uid === c.userId && (

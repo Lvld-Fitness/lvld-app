@@ -11,6 +11,9 @@ import RestFloatingTimer from './RestFloatingTimer';
 import GymScanModal from './GymScanModal_LocalV9';
 import WorkoutSummaryPopup from './WorkoutSummaryPopup';
 import { TITLE_ACHIEVEMENTS } from './titleCriteria'; // 🏷️ Title unlock rules
+import { updateRankingAfterWorkout } from './updateRankingAfterWorkout';
+
+
 
 
 
@@ -82,6 +85,8 @@ export default function WorkoutTab() {
     Cycling: 0,
     Other: 0
   });
+
+  
   
 
 
@@ -477,6 +482,15 @@ const finishWorkout = async () => {
       lastWorkoutDate: today.toISOString(),
       workoutStreak: newStreak,
     });
+
+    // 🏆 Update Ranking
+try {
+  await updateRankingAfterWorkout(user.uid, { weightLifted: totalWeight, distance: totalDistance });
+  console.log("Ranking updated successfully.");
+} catch (err) {
+  console.error("Error updating ranking:", err);
+}
+
 
     // 🔓 Title Achievements Check
     const unlocked = new Set(userData.unlockedTitles || []);

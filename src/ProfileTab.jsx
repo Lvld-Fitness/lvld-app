@@ -4,6 +4,7 @@ import { auth, db } from './firebase';
 import { doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, updateDoc, deleteDoc, where, getDocs,  } from 'firebase/firestore';
 import { onAuthStateChanged, signOut, deleteUser, EmailAuthProvider, reauthenticateWithCredential, } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
+import RankIcon from "./RankIcon";
 
 export default function ProfileTab() {
   const navigate = useNavigate();
@@ -46,6 +47,7 @@ export default function ProfileTab() {
   const [gender, setGender] = useState('');
   const [fitnessGoal, setFitnessGoal] = useState('');
   const [settingsTab, setSettingsTab] = useState('account'); // 'account' or 'fitness'
+  const [rank, setRank] = useState('bronze_1');
 
 
 
@@ -110,35 +112,36 @@ useEffect(() => {
       setTotalWeight(data.totalWeight || 0);
       setTotalDistance(data.totalDistance || 0);
       setWorkoutStreak((data.workoutHistory || []).length);
+      setRank(data.rank || 'bronze_1'); // ✅ Include rank here
       if (data.totalDistanceByType) {
         setDistanceByType(data.totalDistanceByType);
-      }      
+      }
+      
       const history = JSON.parse(localStorage.getItem('workoutHistory')) || [];
       if (history.length > 0) {
         const last = history[history.length - 1];
         setLastWorkoutWeight(last.totalWeight || 0);
       }
-
+  
       setSelectedTitle(data.selectedTitle || '');
       setUnlockedTitles(data.unlockedTitles || ['Beta Tester']);
       setWeight(data.weight || '');
       setHeight(data.height || '');
       setGender(data.gender || '');
       setFitnessGoal(data.fitnessGoal || '');
-
-      
-
-          // ✅ Auto-register handle mapping if missing
-    const handleClean = (data.handle || '').replace('@', '').toLowerCase();
-    if (handleClean) {
-      const handleRef = doc(db, 'handles', handleClean);
-      const handleSnap = await getDoc(handleRef);
-      if (!handleSnap.exists()) {
-        await setDoc(handleRef, { uid });
+  
+      // ✅ Auto-register handle mapping if missing
+      const handleClean = (data.handle || '').replace('@', '').toLowerCase();
+      if (handleClean) {
+        const handleRef = doc(db, 'handles', handleClean);
+        const handleSnap = await getDoc(handleRef);
+        if (!handleSnap.exists()) {
+          await setDoc(handleRef, { uid });
+        }
       }
     }
-  }
-};
+  };
+  
 
 useEffect(() => {
   const user = auth.currentUser;
@@ -369,12 +372,11 @@ const recalculateDistanceByType = (history) => {
           <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
         </label>
 
-        <h1 className="text-3xl font-extrabold mt-4 uppercase">{name}</h1>
+        <h1 className="text-4xl font-extrabold mt-4 uppercase">{name}</h1>
+        <p className="text-3xl font-bold text-red-500">{handle}</p>
         {selectedTitle !== 'No Titles Unlocked' && (
-         <p className="text-sm font-bold text-yellow-400">{selectedTitle}</p>
+         <p className="text-2xl font-bold text-yellow-400">{selectedTitle}</p>
        )}
-
-        <p className="text-2xl font-bold text-red-500">{handle}</p>
 
         {editingBio ? (
           <textarea
@@ -395,6 +397,19 @@ const recalculateDistanceByType = (history) => {
             {bio}
           </p>
         )}
+
+          <div className="flex items-center gap-3 mt-4">
+            <div className="text-lg font-extrabold text-white flex items-center gap-2">
+              <RankIcon rank={rank} size={50} />
+              <div className="flex flex-col">
+                {rank && (
+                  <span className="text-2xl text-gray-400 uppercase">
+                    {rank.replace("_", " ")}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
 
         <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mt-6 text-center w-full max-w-2xl">
 

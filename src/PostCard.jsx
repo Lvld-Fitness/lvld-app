@@ -5,6 +5,7 @@ import { db, auth } from './firebase';
 import { DotsThreeVertical, ThumbsUp, Barbell, Fire, Chats, CheckCircle, } from 'phosphor-react';
 import { useNavigate } from 'react-router-dom';
 import CommentSection from './CommentSection';
+import RankIcon from "./RankIcon";
 
 
 
@@ -23,8 +24,11 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
   const optionsRef = useRef();
   const [hideInDiscovery, setHideInDiscovery] = useState(false);
   const [userTitle, setUserTitle] = useState('');
+  const [selectedTitle, setSelectedTitle] = useState('');
   const [showFullWorkout, setShowFullWorkout] = useState(false);
   const [linkPreview, setLinkPreview] = useState(null);
+  const [rank, setRank] = useState('bronze_1');
+
 
 
 
@@ -76,6 +80,7 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
         setUsername(data.name || 'User');
         setProfilePic(data.profilePic || '/default-avatar.png');
         setUserTitle(data.selectedTitle || '');
+        setRank(data.rank || 'bronze_1'); 
       }
       
     };
@@ -163,13 +168,25 @@ if (hideInDiscovery) return null;
   return (
     <div className="bg-gray-800 p-4 rounded mb-4 shadow relative">
       <div className="flex justify-between items-start mb-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
           <img
             src={profilePic}
             alt="avatar"
             onClick={() => navigate(`/profile/${post.userId}`)}
             className="w-10 h-10 rounded-full object-cover border border-gray-600 cursor-pointer"
           />
+          
+          <div className="flex items-center gap-1">
+            <div className="text-lg font-extrabold text-black flex items-center">
+              <RankIcon rank={rank} size={34} />
+              <div className="flex flex-col">
+                <span className="font-bold text-white">{name}</span>
+                {selectedTitle && (
+                  <span className="ml-1 text-yellow-400 text-sm font-semibold">{selectedTitle}</span>
+                )}
+              </div>
+            </div>
+          </div>
           <div className="text-lg font-extrabold text-white flex items-center gap-2">
 
           <>
@@ -262,6 +279,10 @@ if (hideInDiscovery) return null;
     )}
   </div>
 )}
+
+
+
+
 
 {/* {post.exercises?.length > 0 && (
   <div className="mb-2">
