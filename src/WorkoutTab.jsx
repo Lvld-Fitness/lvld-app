@@ -522,10 +522,11 @@ try {
       await firebaseAddDoc(firebaseCollection(db, 'posts'), {
         userId: 'dKdmdsLKsTY51nFmqHjBWepZgDp2', // LVLD account UID
         content: `🎉 Congrats @${userData.handle || 'user'} on unlocking the title **"${title}"**!\nKeep grinding! 💪`,
-        timestamp: Date.now(),
+        timestamp: serverTimestamp(),  // Ensure it's the latest
         reactions: {},
         deleted: false,
       });
+      
     }
   }
 

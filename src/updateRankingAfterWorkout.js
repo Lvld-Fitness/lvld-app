@@ -4,7 +4,7 @@ import { db } from "./firebase";
 
 // Define season dates
 const SEASONS = [
-  { name: "Beta Season", start: new Date("2025-05-01"), end: new Date("2025-07-31") },
+  { name: "Beta Season", start: new Date("2025-06-01"), end: new Date("2025-07-31") },
   { name: "Season 1", start: new Date("2025-08-01"), end: new Date("2025-10-31") },
   { name: "Season 2", start: new Date("2025-11-01"), end: new Date("2026-01-31") },
 ];
@@ -104,7 +104,14 @@ export const updateRankingAfterWorkout = async (userId, workout) => {
   const newWeightTotal = (userData.seasonTotalWeight || 0) + weightLifted;
 
   // ✅ Ensure distance is rounded to two decimal places to prevent float precision errors
-  const newDistanceTotal = parseFloat(((userData.seasonTotalDistance || 0) + distance).toFixed(2));
+  const previousDistance = userData.seasonTotalDistance || 0;
+  const newDistanceTotal = parseFloat((previousDistance + distance).toFixed(2));
+
+  // Debugging logs
+console.log(`🏋️ Weight Lifted: ${weightLifted}`);
+console.log(`📏 Distance: ${distance}`);
+console.log(`🌟 Previous Distance: ${previousDistance}`);
+console.log(`✅ New Distance Total: ${newDistanceTotal}`);
 
   // Determine new rank
   const newRank = getRankFromRP(newRP);
