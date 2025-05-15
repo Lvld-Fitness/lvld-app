@@ -5,6 +5,7 @@ import { doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, updateDoc,
 import { onAuthStateChanged, signOut, deleteUser, EmailAuthProvider, reauthenticateWithCredential, } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import RankIcon from "./RankIcon";
+import TitleModal from "./TitleModal";
 
 export default function ProfileTab() {
   const navigate = useNavigate();
@@ -48,6 +49,8 @@ export default function ProfileTab() {
   const [fitnessGoal, setFitnessGoal] = useState('');
   const [settingsTab, setSettingsTab] = useState('account'); // 'account' or 'fitness'
   const [rank, setRank] = useState('bronze_1');
+  const [showTitleModal, setShowTitleModal] = useState(false);
+
 
 
 
@@ -374,9 +377,29 @@ const recalculateDistanceByType = (history) => {
 
         <h1 className="text-4xl font-extrabold mt-4 uppercase">{name}</h1>
         <p className="text-3xl font-bold text-red-500">{handle}</p>
-        {selectedTitle !== 'No Titles Unlocked' && (
-         <p className="text-2xl font-bold text-yellow-400">{selectedTitle}</p>
-       )}
+        {selectedTitle && (
+          <div className="relative">
+            <p 
+              className="text-2xl font-bold text-yellow-400 cursor-pointer" 
+              onClick={() => {
+                setSelectedTitle(selectedTitle);
+                setShowTitleModal(true);
+              }}
+            >
+              {selectedTitle}
+            </p>
+          </div>
+        )}
+
+{showTitleModal && (
+  <TitleModal 
+    title={selectedTitle} 
+    onClose={() => setShowTitleModal(false)} 
+  />
+)}
+
+
+
 
         {editingBio ? (
           <textarea

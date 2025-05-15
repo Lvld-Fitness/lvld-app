@@ -5,7 +5,7 @@ import { db, auth } from './firebase';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import PostCard from './PostCard';
 import RankIcon from "./RankIcon";
-
+import TitleModal from "./TitleModal";
 
 export default function PublicProfile() {
   const { uid } = useParams();
@@ -14,6 +14,8 @@ export default function PublicProfile() {
   const [posts, setPosts] = useState([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [selectedTitle, setSelectedTitle] = useState('');
+  const [showTitleModal, setShowTitleModal] = useState(false);
+
 
 
   const currentUser = auth.currentUser;
@@ -102,8 +104,27 @@ export default function PublicProfile() {
         <h1 className="text-3xl font-bold mt-4">{data.name}</h1>
         <p className="text-3xl font-bold text-red-500">{data.handle}</p>
         {selectedTitle && (
-          <p className="text-yellow-400 font-bold text-md">{selectedTitle}</p>
+          <div className="relative">
+            <p 
+              className="text-2xl font-bold text-yellow-400 cursor-pointer" 
+              onClick={() => {
+                setSelectedTitle(selectedTitle);
+                setShowTitleModal(true);
+              }}
+            >
+              {selectedTitle}
+            </p>
+          </div>
         )}
+
+        {showTitleModal && (
+          <TitleModal 
+            title={selectedTitle} 
+            onClose={() => setShowTitleModal(false)} 
+          />
+        )}
+      
+
         <p className="text-center text-gray-300 max-w-md mt-2">{data.bio || 'This user has no bio.'}</p>
 
         <div className="flex items-center gap-3 mt-4">

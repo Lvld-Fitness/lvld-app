@@ -1,11 +1,13 @@
 // PostCard.jsx
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, React } from 'react';
 import { doc, getDoc, getDocs, collection, deleteDoc, updateDoc, addDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { DotsThreeVertical, ThumbsUp, Barbell, Fire, Chats, CheckCircle, } from 'phosphor-react';
 import { useNavigate } from 'react-router-dom';
 import CommentSection from './CommentSection';
 import RankIcon from "./RankIcon";
+import TitleModal from "./TitleModal";
+
 
 
 
@@ -24,10 +26,12 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
   const optionsRef = useRef();
   const [hideInDiscovery, setHideInDiscovery] = useState(false);
   const [userTitle, setUserTitle] = useState('');
-  const [selectedTitle, setSelectedTitle] = useState('');
   const [showFullWorkout, setShowFullWorkout] = useState(false);
   const [linkPreview, setLinkPreview] = useState(null);
   const [rank, setRank] = useState('bronze_1');
+  const [showTitleModal, setShowTitleModal] = useState(false);
+  const [selectedTitle, setSelectedTitle] = useState("");
+  
 
 
 
@@ -177,24 +181,40 @@ if (hideInDiscovery) return null;
           />
           
           <div className="flex items-center gap-1">
-            <div className="text-lg font-extrabold text-black flex items-center">
+            <div className="text-lg font-extrabold text-black flex items-center gap-2">
               <RankIcon rank={rank} size={34} />
               <div className="flex flex-col">
-                <span className="font-bold text-white">{name}</span>
-                {selectedTitle && (
-                  <span className="ml-1 text-yellow-400 text-sm font-semibold">{selectedTitle}</span>
+                <span className="font-bold text-white">{username}</span>
+                {userTitle && (
+                  <span 
+                    className="text-yellow-400 text-sm font-semibold cursor-pointer" 
+                    onClick={() => {
+                      setSelectedTitle(userTitle);
+                      setShowTitleModal(true);
+                    }}
+                  >
+                    {userTitle}
+                  </span>
                 )}
+
+                {/* TitleModal Implementation */}
+                {showTitleModal && (
+                  <TitleModal 
+                    title={selectedTitle} 
+                    onClose={() => setShowTitleModal(false)} 
+                  />
+                )}
+
               </div>
             </div>
           </div>
+
+               
+
+           
           <div className="text-lg font-extrabold text-white flex items-center gap-2">
 
-          <>
-            {username}
-            {userTitle && (
-              <span className="ml-1 text-yellow-400 text-sm font-semibold">{userTitle}</span>
-            )}
-          </>
+
 
 
   {showFollowOption && !following.includes(post.userId) && post.userId !== currentUserId && (
