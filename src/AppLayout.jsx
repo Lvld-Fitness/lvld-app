@@ -79,23 +79,6 @@ export default function AppLayout({ children }) {
         </button>
 
         <button
-          onClick={() => navigate('/teams')}
-          className={`flex flex-col items-center text-sm ${location.pathname.includes('/teams') ? 'text-red-500' : 'text-gray-400'}`}
-        >
-          <UsersThree size={24} />
-          Teams
-        </button>
-
-        <button
-          onClick={() => navigate('/rankings')}
-          className={`flex flex-col items-center text-sm ${location.pathname.includes('/rankings') ? 'text-red-500' : 'text-gray-400'}`}
-        >
-          <ChartBar size={24} />
-          Rankings
-        </button>
-
-
-        <button
           onClick={handleFeedClick}
           className={`flex flex-col items-center text-sm relative ${location.pathname.includes('/feed') ? 'text-red-500' : 'text-gray-400'}`}
         >
@@ -106,6 +89,22 @@ export default function AppLayout({ children }) {
             )}
           </div>
           Feed
+        </button>
+
+        <button
+          onClick={() => navigate('/rankings')}
+          className={`flex flex-col items-center text-sm ${location.pathname.includes('/rankings') ? 'text-red-500' : 'text-gray-400'}`}
+        >
+          <ChartBar size={24} />
+          Rankings
+        </button>
+
+        <button
+          onClick={() => navigate('/teams')}
+          className={`flex flex-col items-center text-sm ${location.pathname.includes('/teams') ? 'text-red-500' : 'text-gray-400'}`}
+        >
+          <UsersThree size={24} />
+          Teams
         </button>
 
         <button

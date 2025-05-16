@@ -7,6 +7,10 @@ export const TITLE_ACHIEVEMENTS = [
     title: 'LVLD Developer',
     description: 'For the person who developed LVLD!'
   },
+  {
+    title: 'LVLD FITNESS',
+    description: 'WELCOME TO LVLD FITNESS!'
+  },
   { 
     //Workout Achievements
     title: 'Rookie', 

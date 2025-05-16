@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 
 const SEASONS = [
-  { name: "Beta Season", start: new Date("2025-06-01"), end: new Date("2025-07-31") },
+  { name: "Beta Season", start: new Date("2025-05-16"), end: new Date("2025-07-31") },
   { name: "Season 1", start: new Date("2025-08-01"), end: new Date("2025-10-31") },
   { name: "Season 2", start: new Date("2025-11-01"), end: new Date("2026-01-31") },
   { name: "Season 3", start: new Date("2026-02-01"), end: new Date("2026-04-30") },
