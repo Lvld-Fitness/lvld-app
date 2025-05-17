@@ -15,6 +15,7 @@ import { GlobalRestTimerProvider } from './GlobalRestTimerContext';
 import StoryViewer from './StoryViewer';
 import SinglePost from './SinglePost'; // if you have a SinglePost component (or whatever you named it)
 import SeasonalLeaderboard from "./SeasonalLeaderboard";
+import ActiveWorkoutView from "./ActiveWorkoutView";
 
 
 
@@ -130,6 +131,8 @@ export default function App() {
         <Route path="/story/:userId" element={<StoryViewer />} />
 
         <Route path="/post/:postId" element={<SinglePost />} />
+
+        <Route path="/workout/:userId" element={<ActiveWorkoutView />} />
 
 
 

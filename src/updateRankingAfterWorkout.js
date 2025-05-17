@@ -3,7 +3,7 @@ import { db } from "./firebase";
 
 // 📅 Season Definitions
 const SEASONS = [
-  { name: "Beta Season", start: new Date("2025-05-16"), end: new Date("2025-07-31") },
+  { name: "Beta Season", start: new Date("2025-05-18"), end: new Date("2025-07-31") },
   { name: "Season 1", start: new Date("2025-08-01"), end: new Date("2025-10-31") },
   { name: "Season 2", start: new Date("2025-11-01"), end: new Date("2026-01-31") },
   { name: "Season 3", start: new Date("2026-02-01"), end: new Date("2026-04-30") },
@@ -90,20 +90,53 @@ const resetAllUserRanks = async (currentSeason) => {
   }
 };
 
-// 🔥 Post LVLD Message
-const postLVLDMessage = async (content) => {
+// 🔥 Notify All Users
+const notifyAllUsers = async (content) => {
   try {
+    const usersRef = collection(db, "users");
+    const snapshot = await getDocs(usersRef);
+
+    snapshot.docs.forEach(async (userDoc) => {
+      const userId = userDoc.id;
+
+      // Skip LVLD account itself
+      if (userId === LVLD_ACCOUNT_ID) return;
+
+      const userRef = doc(db, "users", userId);
+      await updateDoc(userRef, {
+        notifications: arrayUnion(content),
+      });
+    });
+
+    console.log("Notification sent to all users.");
+  } catch (error) {
+    console.error("Error sending notification to all users:", error);
+  }
+};
+
+// 🔥 Post LVLD Message
+const postLVLDMessage = async (content, seasonName, type) => {
+  try {
+    // If the post contains "@everyone", notify all users
+    if (content.includes("@everyone")) {
+      await notifyAllUsers(content);
+    }
+
     await addDoc(collection(db, "posts"), {
       userId: LVLD_ACCOUNT_ID,
       content,
-      timestamp: Date.now(),
+      timestamp: new Date(),
       reactions: {},
       deleted: false,
+      season: seasonName,
+      type: type,
     });
   } catch (error) {
     console.error("Error posting LVLD message:", error);
   }
 };
+
+
 
 // 🔄 Seasonal Posts
 const handleSeasonalPosts = async () => {
@@ -116,7 +149,6 @@ const handleSeasonalPosts = async () => {
 
   const usersRef = collection(db, "users");
   const snapshot = await getDocs(usersRef);
-  const lvldData = snapshot.docs.find(doc => doc.id === LVLD_ACCOUNT_ID)?.data();
 
   const totalWeight = snapshot.docs.reduce((acc, doc) => acc + (doc.data().seasonTotalWeight || 0), 0);
   const totalDistance = snapshot.docs.reduce((acc, doc) => acc + (doc.data().seasonTotalDistance || 0), 0);
@@ -136,43 +168,71 @@ const handleSeasonalPosts = async () => {
     }, null);
 
   if (now >= start && now < halfWay) {
-    postLVLDMessage(`🏆 **${name}** has officially started! Get those workouts going! 💥`);
-  }
+    console.log(`🏁 New season "${name}" started. Resetting all users to Bronze 1.`);
 
+    const resetPromises = snapshot.docs.map(async (doc) => {
+      const userRef = doc.ref;
+      await updateDoc(userRef, {
+        rank: "bronze_1",
+        rankRP: 0,
+        seasonTotalWeight: 0,
+        seasonTotalDistance: 0,
+        currentSeason: name,
+      });
+      
+      // Keep LVLD as Champion 6
+      if (doc.id === LVLD_ACCOUNT_ID) {
+        updates.rank = "champion_6";
+        updates.rankRP = 40000; // Arbitrary RP to maintain Champion 6
+      }
+
+      await updateDoc(userRef, updates);
+
+    });
+
+    await Promise.all(resetPromises);
+
+    postLVLDMessage(`🔥 @everyone, **${name}** has officially started! Get those workouts going! 💪`, name, "seasonStart");
+  }
+//midseason announcement
   if (now >= halfWay && now < end) {
     postLVLDMessage(
-      `🚀 We're halfway through **${name}**! 
+      `🚀 @everyone, We're halfway through **${name}**! 
 Current Leaders:
-- Weight: **${topWeightUser?.name}** (${topWeightUser?.weight.toLocaleString()} lbs)
-- Distance: **${topDistanceUser?.name}** (${topDistanceUser?.distance.toFixed(2)} mi)`
+- Weight: **${topWeightUser?.name || "No data"}** (${topWeightUser?.weight?.toLocaleString() || "0"} lbs)
+- Distance: **${topDistanceUser?.name || "No data"}** (${topDistanceUser?.distance?.toFixed(2) || "0.00"} mi)`,
+      name,
+      "seasonMidway"
     );
   }
-
+//end of season announcement
   if (now >= end) {
     postLVLDMessage(
-      `🏁 **${name}** is complete! 
-- Total Weight: ${totalWeight.toLocaleString()} lbs
-- Total Distance: ${totalDistance.toFixed(2)} mi
-🏆 Congrats to the top lifters and runners!`
+      `🏁 @everyone, **${name}** is complete! 
+- Total Weight Lifted: ${totalWeight.toLocaleString()} lbs
+- Total Distance Covered: ${totalDistance.toFixed(2)} mi
+🏆 Congrats to the top lifters and runners!
+- Weight: **${topWeightUser?.name || "No data"}** (${topWeightUser?.weight?.toLocaleString() || "0"} lbs)
+- Distance: **${topDistanceUser?.name || "No data"}** (${topDistanceUser?.distance?.toFixed(2) || "0.00"} mi)`,
+      name,
+      "seasonEnd"
     );
+
     await resetAllUserRanks(name);
   }
 };
 
-// 🔥 Update Ranking After Workout
+
 // 🔥 Update Ranking After Workout
 export const updateRankingAfterWorkout = async (userId, workout) => {
-  await handleSeasonReset();
-
   const userRef = doc(db, "users", userId);
   const userSnap = await getDoc(userRef);
+  const currentSeason = getCurrentSeason();
 
   if (!userSnap.exists()) return "bronze_1";
 
   const userData = userSnap.data();
   const { weightLifted, distance } = workout;
-
-  const currentSeason = getCurrentSeason();
   const isActiveSeason = currentSeason !== null;
 
   const weightRP = Math.floor(weightLifted / 100);
@@ -189,17 +249,16 @@ export const updateRankingAfterWorkout = async (userId, workout) => {
     totalDistance: parseFloat(((userData.totalDistance || 0) + distance).toFixed(2)),
   };
 
-  // ✅ Only update seasonal data if a season is active
   if (isActiveSeason) {
     updates.seasonTotalWeight = (userData.seasonTotalWeight || 0) + weightLifted;
-    updates.seasonTotalDistance = parseFloat(
-      ((userData.seasonTotalDistance || 0) + distance).toFixed(2)
-    );
+    updates.seasonTotalDistance = parseFloat(((userData.seasonTotalDistance || 0) + distance).toFixed(2));
     updates.currentSeason = currentSeason.name;
   }
 
   await updateDoc(userRef, updates);
 
   console.log(`Updated user ${userId}: New Rank: ${newRank}, New RP: ${newRP}`);
+
+  handleSeasonalPosts();
   return newRank;
 };
