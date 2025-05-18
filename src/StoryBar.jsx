@@ -11,6 +11,7 @@ export default function StoryBar() {
   const [stories, setStories] = useState([]);
   const [following, setFollowing] = useState([]);
   const [showOptions, setShowOptions] = useState(null);
+  const [activeWorkout, setActiveWorkout] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -68,10 +69,24 @@ export default function StoryBar() {
 
   const handleOptions = (user) => {
     setShowOptions(user);
+    setActiveWorkout(null);  // Reset active workout when opening the options
   };
 
   const closeOptions = () => {
     setShowOptions(null);
+    setActiveWorkout(null);
+  };
+
+  const fetchWorkout = async (userId) => {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+      const workoutData = userSnap.data().activeWorkout || [];
+      setActiveWorkout({ userId, exercises: workoutData });
+    } else {
+      setActiveWorkout({ userId, exercises: [] });
+    }
   };
 
   return (
@@ -129,6 +144,7 @@ export default function StoryBar() {
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-4 rounded-lg w-64">
             <h2 className="text-white text-lg font-bold mb-4">Select an Option</h2>
+
             {showOptions.hasStory && (
               <button
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 mb-2 rounded"
@@ -140,6 +156,7 @@ export default function StoryBar() {
                 View Story
               </button>
             )}
+
             <button
               className="w-full bg-green-500 hover:bg-green-600 text-white py-2 mb-2 rounded"
               onClick={() => {
@@ -149,17 +166,16 @@ export default function StoryBar() {
             >
               View Profile
             </button>
+
             {showOptions.workingOut && (
               <button
                 className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded"
-                onClick={() => {
-                  navigate(`/workout/${showOptions.userId}`);
-                  closeOptions();
-                }}
+                onClick={() => fetchWorkout(showOptions.userId)}
               >
                 View Workout
               </button>
             )}
+
             <button
               className="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 mt-2 rounded"
               onClick={closeOptions}
@@ -169,6 +185,40 @@ export default function StoryBar() {
           </div>
         </div>
       )}
+
+{/* Active Workout Modal */}
+{activeWorkout && (
+  <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+    <div className="bg-gray-800 p-4 rounded-lg w-64 max-h-[80vh] overflow-y-auto">
+      <h2 className="text-white text-lg font-bold mb-4">Active Workout</h2>
+      {activeWorkout.exercises.length > 0 ? (
+        activeWorkout.exercises.map((exercise, index) => (
+          <div key={index} className="mb-4">
+            <h3 className="text-yellow-400 font-bold">{exercise.name}</h3>
+            {exercise.sets.map((set, idx) => (
+              <p key={idx} className="text-white text-sm">
+                {set.weight && set.reps
+                  ? `${set.weight} lbs x ${set.reps} reps`
+                  : set.distance && set.time
+                  ? `${set.distance} mi in ${set.time} min`
+                  : `Set not complete yet.`}
+              </p>
+            ))}
+          </div>
+        ))
+      ) : (
+        <p className="text-gray-400">No active workout data available.</p>
+      )}
+      <button
+        className="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 mt-2 rounded"
+        onClick={() => setActiveWorkout(null)}
+      >
+        Close
+      </button>
+    </div>
+  </div>
+)}
+
     </>
   );
 }

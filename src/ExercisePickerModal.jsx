@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import defaultExercises from './exerciseList';
 
+
 export default function ExercisePickerModal({
   selectedExercises,
   setSelectedExercises,
@@ -60,7 +61,7 @@ export default function ExercisePickerModal({
     if (!Array.isArray(highlighted)) return;
   
     const newExercises = highlighted.map((name) => {
-      const isCardio = name.toLowerCase().includes('run') || name.toLowerCase().includes('bike') || name.toLowerCase().includes('treadmill') || name.toLowerCase().includes('row') || name.toLowerCase().includes('walk') || name.toLowerCase().includes('sprint') || name.toLowerCase().includes('elliptical') || name.toLowerCase().includes('stairs') || name.toLowerCase().includes('cycle') || name.toLowerCase().includes('carry');
+      const isCardio = name.toLowerCase().includes('run') || name.toLowerCase().includes('bike') || name.toLowerCase().includes('treadmill') || name.toLowerCase().includes('walk') || name.toLowerCase().includes('sprint') || name.toLowerCase().includes('elliptical') || name.toLowerCase().includes('stairs') || name.toLowerCase().includes('cycle') || name.toLowerCase().includes('carry');
   
       return {
         name,

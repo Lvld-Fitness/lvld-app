@@ -79,12 +79,6 @@ export default function WorkoutTab() {
   const [pendingRestTrigger, setPendingRestTrigger] = useState(false);
   const [showWorkoutSummary, setShowWorkoutSummary] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
-  const [distanceByType, setDistanceByType] = useState({
-    Walking: 0,
-    Running: 0,
-    Cycling: 0,
-    Other: 0
-  });
 
   
   
@@ -205,6 +199,24 @@ useEffect(() => {
     return () => clearInterval(interval);
   }
 }, [workoutStartTime]);
+
+// 🧠 Save current workout to Firebase as it updates
+useEffect(() => {
+  const updateActiveWorkout = async () => {
+    const user = auth.currentUser;
+    if (user) {
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        activeWorkout: selectedExercises.length > 0 ? selectedExercises : null,
+        workingOut: selectedExercises.length > 0,
+      });
+    }
+  };
+
+  updateActiveWorkout();
+}, [selectedExercises]);
+
+
 
 // 🧠 Save current workout to localStorage as it updates
 useEffect(() => {
@@ -471,6 +483,8 @@ const finishWorkout = async () => {
       totalDistance,
       lastWorkoutDate: today.toISOString(),
       workoutStreak: newStreak,
+      activeWorkout: [], // Clear active workout as the workout is finished
+      workingOut: false // Mark the user as not working out
     });
 
     // 🏆 Update Ranking
@@ -532,7 +546,7 @@ TITLE_ACHIEVEMENTS.forEach((achievement) => {
     for (const title of newlyUnlocked) {
       await firebaseAddDoc(firebaseCollection(db, 'posts'), {
         userId: 'dKdmdsLKsTY51nFmqHjBWepZgDp2', // LVLD account UID
-        content: `🎉 Congrats ${userData.handle || 'user'} on unlocking the title **"${title}"**!\nKeep grinding! 💪`,
+        content: `🎉 Congrats ${userData.handle || 'user'} on unlocking the title "${title}"!\nKeep grinding! 💪`,
         timestamp: serverTimestamp(),  // Ensure it's the latest
         reactions: {},
         deleted: false,
