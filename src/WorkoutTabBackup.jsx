@@ -1,3 +1,4 @@
+//BACKUP WORKOUTTAB
 // 🌟 React and Utility Imports
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +12,9 @@ import RestFloatingTimer from './RestFloatingTimer';
 import GymScanModal from './GymScanModal_LocalV9';
 import WorkoutSummaryPopup from './WorkoutSummaryPopup';
 import { TITLE_ACHIEVEMENTS } from './titleCriteria'; // 🏷️ Title unlock rules
+import { updateRankingAfterWorkout } from './updateRankingAfterWorkout';
+
+
 
 
 
@@ -76,12 +80,8 @@ export default function WorkoutTab() {
   const [pendingRestTrigger, setPendingRestTrigger] = useState(false);
   const [showWorkoutSummary, setShowWorkoutSummary] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
-  const [distanceByType, setDistanceByType] = useState({
-    Walking: 0,
-    Running: 0,
-    Cycling: 0,
-    Other: 0
-  });
+
+  
   
 
 
@@ -200,6 +200,24 @@ useEffect(() => {
     return () => clearInterval(interval);
   }
 }, [workoutStartTime]);
+
+// 🧠 Save current workout to Firebase as it updates
+useEffect(() => {
+  const updateActiveWorkout = async () => {
+    const user = auth.currentUser;
+    if (user) {
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        activeWorkout: selectedExercises.length > 0 ? selectedExercises : null,
+        workingOut: selectedExercises.length > 0,
+      });
+    }
+  };
+
+  updateActiveWorkout();
+}, [selectedExercises]);
+
+
 
 // 🧠 Save current workout to localStorage as it updates
 useEffect(() => {
@@ -377,39 +395,28 @@ const cancelWorkout = async () => {
 
 
 
-const calculateDistanceByType = (exercises) => {
-  const distanceData = {
-    Walking: 0,
-    Running: 0,
-    Cycling: 0,
-    Other: 0,
-  };
+const calculateDistance = (exercises) => {
+  let totalDistance = 0;
 
   exercises.forEach(ex => {
     if (ex.sets) {
       ex.sets.forEach(set => {
         const dist = parseFloat(set.distance) || 0;
-
-        if (ex.name.toLowerCase().includes('walk')) {
-          distanceData.Walking += dist;
-        } else if (ex.name.toLowerCase().includes('run')) {
-          distanceData.Running += dist;
-        } else if (ex.name.toLowerCase().includes('bike') || ex.name.toLowerCase().includes('cycle')) {
-          distanceData.Cycling += dist;
-        } else {
-          distanceData.Other += dist;
+        if (dist > 0) {
+          totalDistance += dist;
         }
       });
     }
   });
 
-  return distanceData;
+  return parseFloat(totalDistance.toFixed(2)); // Ensures precision and no accidental updates
 };
+
 
 
 const finishWorkout = async () => {
   const totalWeight = calculateTotalWeight(selectedExercises);
-  const distanceByType = calculateDistanceByType(selectedExercises);
+  const totalDistance = calculateDistance(selectedExercises);
 
   const cardioSets = selectedExercises
     .filter(e => cardioExercises.includes(e.name))
@@ -440,6 +447,7 @@ const finishWorkout = async () => {
       duration: elapsedTime,
       exercises: selectedExercises,
       totalWeight,
+      totalDistance,
     };
     
 
@@ -451,7 +459,7 @@ const finishWorkout = async () => {
   });
   localStorage.setItem('lastUsedSets', JSON.stringify(lastSets));
 
-  const updatedHistory = [completedWorkout, ...workoutHistory];
+  const updatedHistory = [completedWorkout, ...workoutHistory].splice(0, 10000);
   setWorkoutHistory(updatedHistory);
   localStorage.setItem('workoutHistory', JSON.stringify(updatedHistory));
 
@@ -476,42 +484,75 @@ const finishWorkout = async () => {
       totalDistance,
       lastWorkoutDate: today.toISOString(),
       workoutStreak: newStreak,
+      activeWorkout: [], // Clear active workout as the workout is finished
+      workingOut: false // Mark the user as not working out
     });
 
-    // 🔓 Title Achievements Check
-    const unlocked = new Set(userData.unlockedTitles || []);
-    TITLE_ACHIEVEMENTS.forEach(({ title, condition }) => {
-      if (condition({
-        workoutStreak: updatedHistory.length,
-        totalDistance,
-        totalWeight
-      })) {
-        unlocked.add(title);
-      }
-    });
+    // 🏆 Update Ranking
+try {
+  await updateRankingAfterWorkout(user.uid, { weightLifted: totalWeight, distance: totalDistance });
+  console.log("Ranking updated successfully.");
+} catch (err) {
+  console.error("Error updating ranking:", err);
+}
+
+
+
+// 🔓 Title Achievements Check
+const unlocked = new Set(userData.unlockedTitles || []);
+TITLE_ACHIEVEMENTS.forEach((achievement) => {
+  const { title, condition } = achievement;
+
+  if (typeof condition === "function") {
+    if (condition({
+      workoutHistory: updatedHistory,
+      totalDistance,
+      totalWeight,
+      singleWorkoutWeight: totalWeight,
+    })) {
+      unlocked.add(title);
+    }
+  } else {
+    console.warn(`Invalid condition for title: ${title}`);
+  }
+});
+
+
 
     await updateDoc(userRef, {
       unlockedTitles: Array.from(unlocked),
     });
 
     const newlyUnlocked = TITLE_ACHIEVEMENTS
-      .filter(({ title, condition }) =>
+    .filter((achievement) => {
+      const { title, condition } = achievement;
+      if (typeof condition !== "function") {
+        console.error(`Invalid condition for title: ${title}`);
+        return false;
+      }
+  
+      return (
         condition({
-          workoutStreak: updatedHistory.length,
+          workoutHistory: updatedHistory,
           totalDistance,
-          totalWeight
+          totalWeight,
+          singleWorkoutWeight: totalWeight,
         }) && !userData.unlockedTitles?.includes(title)
-      )
-      .map(({ title }) => title);
+      );
+    })
+    .map(({ title }) => title);
+  
+
 
     for (const title of newlyUnlocked) {
       await firebaseAddDoc(firebaseCollection(db, 'posts'), {
         userId: 'dKdmdsLKsTY51nFmqHjBWepZgDp2', // LVLD account UID
-        content: `🎉 Congrats @${userData.handle || 'user'} on unlocking the title **"${title}"**!\nKeep grinding! 💪`,
-        timestamp: Date.now(),
+        content: `🎉 Congrats ${userData.handle || 'user'} on unlocking the title "${title}"!\nKeep grinding! 💪`,
+        timestamp: serverTimestamp(),  // Ensure it's the latest
         reactions: {},
         deleted: false,
       });
+      
     }
   }
 

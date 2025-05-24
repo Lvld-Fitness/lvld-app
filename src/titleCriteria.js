@@ -1,4 +1,5 @@
 export const TITLE_ACHIEVEMENTS = [
+  //customs
   {
     title: 'Beta Tester',
     description: 'Users who used LVLD During Beta! You are the Real MVP! <3'
@@ -10,6 +11,15 @@ export const TITLE_ACHIEVEMENTS = [
   {
     title: 'LVLD FITNESS',
     description: 'WELCOME TO LVLD FITNESS!'
+  },
+  {
+    //Leos Custom Title
+    title: 'Vitals and Virtues',
+    description: 'Check out the Vitals and Virtues Podcast on all Streaming Platforms!'
+  },
+  {
+    title: 'LVLD',
+    description: ''
   },
   { 
     //Workout Achievements
@@ -58,6 +68,11 @@ export const TITLE_ACHIEVEMENTS = [
     condition: (data) => (data.totalDistance || 0) >= 10,
     description: 'Travel 10 miles to earn the Mile Starter title.'
   },
+   { 
+    title: 'Hyrule Wanderer', 
+    condition: (data) => (data.totalDistance || 0) >= 18.5,
+    description: 'Travel 18.5 miles to earn the Hyrule Wanderer title. Congrats you have traveled the Breath of the Wild map!'
+  },
   { 
     title: 'Trailblazer', 
     condition: (data) => (data.totalDistance || 0) >= 25,
@@ -82,6 +97,26 @@ export const TITLE_ACHIEVEMENTS = [
     title: 'Map Melter', 
     condition: (data) => (data.totalDistance || 0) >= 500,
     description: 'Melt the map by covering 500 miles in total distance.'
+  },
+   { 
+    title: 'Fellowship Strider', 
+    condition: (data) => (data.totalDistance || 0) >= 1233,
+    description: 'Embark on the epic journey from the Shire to the breaking of the Fellowship, retracing the path of the Ringbearer and his allies. Travel 1,233 Miles!'
+  },
+  { 
+    title: 'Two Towers Trekker', 
+    condition: (data) => (data.totalDistance || 0) >= 810,
+    description: 'Navigate the fractured lands of Rohan and Gondor, folowing the footsteps of Aragorn, Frodo, and the Riders of Rohan. Travel 810 Miles!'
+  },
+  { 
+    title: 'Return of the King Runner', 
+    condition: (data) => (data.totalDistance || 0) >= 305,
+    description: 'March through the final leg of the quest, from Osgiliath to the fiery heart of Mount Doom -- the last stand against Sauron. Travel 305 Miles!'
+  },
+  { 
+    title: 'Lord of the Miles', 
+    condition: (data) => (data.totalDistance || 0) >= 2348,
+    description: 'Complete the full epic journey from the peaceful hills of the Shire to the depths of Mordor, conquering every step Frodo and Sam took to destroy the One Ring. Travel 2,348 Miles!'
   },
   // Total Weight Lifted Achievements
   { 

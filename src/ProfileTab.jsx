@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Gear } from 'phosphor-react';
+import { Gear, ChatsCircle, EnvelopeSimple } from 'phosphor-react';
 import { auth, db } from './firebase';
 import { doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, updateDoc, deleteDoc, where, getDocs,  } from 'firebase/firestore';
 import { onAuthStateChanged, signOut, deleteUser, EmailAuthProvider, reauthenticateWithCredential, } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import RankIcon from "./RankIcon";
 import TitleModal from "./TitleModal";
+import MessageModal from "./MessageModal";
 
 export default function ProfileTab() {
   const navigate = useNavigate();
@@ -32,12 +33,6 @@ export default function ProfileTab() {
   const [workoutHistory, setWorkoutHistory] = useState([]);
   const [showDistanceBreakdown, setShowDistanceBreakdown] = useState(false);
   const [distanceUnit, setDistanceUnit] = useState('miles'); // or 'km' if you prefer default
-  const [distanceByType, setDistanceByType] = useState({
-    Walking: 0,
-    Running: 0,
-    Cycling: 0,
-    Other: 0,
-  });
   const [selectedTitle, setSelectedTitle] = useState('');
   const [unlockedTitles, setUnlockedTitles] = useState([]);
   const [workoutStreak, setWorkoutStreak] = useState(0);
@@ -50,6 +45,10 @@ export default function ProfileTab() {
   const [settingsTab, setSettingsTab] = useState('account'); // 'account' or 'fitness'
   const [rank, setRank] = useState('bronze_1');
   const [showTitleModal, setShowTitleModal] = useState(false);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+
 
 
 
@@ -116,9 +115,6 @@ useEffect(() => {
       setTotalDistance(data.totalDistance || 0);
       setWorkoutStreak((data.workoutHistory || []).length);
       setRank(data.rank || 'bronze_1'); // ✅ Include rank here
-      if (data.totalDistanceByType) {
-        setDistanceByType(data.totalDistanceByType);
-      }
       
       const history = JSON.parse(localStorage.getItem('workoutHistory')) || [];
       if (history.length > 0) {
@@ -366,6 +362,16 @@ const recalculateDistanceByType = (history) => {
 
   return (
     <div className="p-4 text-white bg-black min-h-screen relative">
+{/* 
+     / 💬 Message Icon 
+      <button
+        onClick={() => setShowMessageModal(true)}
+        className="absolute top-4 left-4 text-yellow-400 hover:text-yellow-500"
+      >
+        <ChatsCircle size={32} />
+      </button>
+*/}
+
       <button onClick={() => setShowSettings(true)} className="absolute top-4 right-4 text-white">
         <Gear size={24} weight="bold" />
       </button>
@@ -391,12 +397,12 @@ const recalculateDistanceByType = (history) => {
           </div>
         )}
 
-{showTitleModal && (
-  <TitleModal 
-    title={selectedTitle} 
-    onClose={() => setShowTitleModal(false)} 
-  />
-)}
+        {showTitleModal && (
+          <TitleModal 
+            title={selectedTitle} 
+            onClose={() => setShowTitleModal(false)} 
+          />
+        )}
 
 
 
@@ -662,6 +668,17 @@ const recalculateDistanceByType = (history) => {
     </div>
   </div>
 )}
+
+{/* 
+{showMessageModal && (
+  <MessageModal 
+    onClose={() => setShowMessageModal(false)} 
+    mode="inbox"
+  />
+)}
+*/}
+
+
 
       </div>
     </div>

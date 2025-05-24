@@ -117,9 +117,6 @@ export default function WorkoutTab() {
 
         setTotalWeight(data.totalWeight || 0);
         setTotalDistance(data.totalDistance || 0);
-        if (data.totalDistanceByType) {
-          setDistanceByType(data.totalDistanceByType);
-        }
         
       }
     };
@@ -478,7 +475,6 @@ const finishWorkout = async () => {
 
     await updateDoc(userRef, {
       workoutHistory: updatedHistory,
-      totalDistanceByType: distanceByType,
       totalWeight,
       totalDistance,
       lastWorkoutDate: today.toISOString(),

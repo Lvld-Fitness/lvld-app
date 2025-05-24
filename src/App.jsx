@@ -16,12 +16,9 @@ import StoryViewer from './StoryViewer';
 import SinglePost from './SinglePost'; // if you have a SinglePost component (or whatever you named it)
 import SeasonalLeaderboard from "./SeasonalLeaderboard";
 import ActiveWorkoutView from "./ActiveWorkoutView";
+import TeamsTab from './TeamsTab';
 
 
-
-function TeamsTab() {
-  return <div className="text-white p-4">Teams Tab Coming Soon</div>;
-}
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -66,7 +63,7 @@ export default function App() {
             </RestTimerProvider>
           ) : <Navigate to="/login" />
         } />
-
+    
         <Route path="/teams" element={
           user ? (
             <RestTimerProvider>
@@ -78,7 +75,7 @@ export default function App() {
             </RestTimerProvider>
           ) : <Navigate to="/login" />
         } />
-
+       
         <Route path="/feed" element={
           user ? (
             <RestTimerProvider>
