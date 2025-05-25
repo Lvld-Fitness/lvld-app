@@ -54,6 +54,17 @@ export default function ProfileTab() {
 
 
   
+useEffect(() => {
+  const fetchNotifications = async () => {
+    if (!auth.currentUser) return;
+    const notifRef = collection(db, "users", auth.currentUser.uid, "notifications");
+    const snapshot = await getDocs(notifRef);
+    const notifs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    setNotifications(notifs);
+  };
+
+  fetchNotifications();
+}, []);
 
 
 useEffect(() => {
@@ -242,56 +253,6 @@ const recalculateDistanceByType = (history) => {
     setCurrentLevelXpNeeded(xpForLevel);
   }, [xp]);
 
-//Notifications
-<div className="bg-gray-900 rounded-lg p-4 mt-4 mx-auto w-full max-w-xl text-center">
-  <h3 className="text-lg font-bold text-white mb-2">🔔 Notifications</h3>
-
-  {notifications.length === 0 ? (
-    <p className="text-gray-400">No notifications yet.</p>
-  ) : (
-    notifications.map((notif) => (
-      <div
-        key={notif.id}
-        onClick={async () => {
-          const notifRef = doc(db, 'users', auth.currentUser.uid, 'notifications', notif.id);
-          
-          // Delete the notification after clicking
-          await deleteDoc(notifRef);
-
-          if (notif.postId) {
-            window.location.href = `/post/${notif.postId}`;
-          }
-        }}
-        className="bg-gray-800 p-3 rounded mb-2 hover:bg-gray-700 cursor-pointer flex items-center justify-between"
-      >
-        <div className="text-sm text-white mx-auto">
-          {notif.type === 'reaction' && (
-            <p>
-              <span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> reacted to your post! 🔥
-            </p>
-          )}
-          {notif.type === 'comment' && (
-            <p>
-              <span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> commented on your post! 💬
-            </p>
-          )}
-          {notif.type === 'mention' && (
-            <p>
-              <span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> mentioned you! 🏷️
-            </p>
-          )}
-        </div>
-        {!notif.read && (
-          <div className="w-3 h-3 rounded-full bg-red-500"></div>
-        )}
-      </div>
-    ))
-  )}
-</div>
-
-
-
-
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -371,6 +332,7 @@ const recalculateDistanceByType = (history) => {
         <ChatsCircle size={32} />
       </button>
 */}
+
 
       <button onClick={() => setShowSettings(true)} className="absolute top-4 right-4 text-white">
         <Gear size={24} weight="bold" />
@@ -492,46 +454,57 @@ const recalculateDistanceByType = (history) => {
           </p>
         </div>
 
-            
-        <div className="bg-gray-900 rounded-lg p-4 mt-4">
-          <h3 className="text-lg font-bold text-white mb-2">🔔 Notifications</h3>
+         {/*Notifications*/}
+<div className="bg-gray-900 rounded-lg p-4 mt-4 mx-auto w-full max-w-xl text-center">
+  <h3 className="text-lg font-bold text-white mb-2">🔔 Notifications</h3>
 
-          {notifications.length === 0 ? (
-            <p className="text-gray-400">No notifications yet.</p>
-          ) : (
-            notifications.map((notif) => (
-              <div
-                key={notif.id}
-                onClick={async () => {
-                  if (!notif.read) {
-                    await updateDoc(doc(db, 'users', auth.currentUser.uid, 'notifications', notif.id), { read: true });
-                  }
-                  if (notif.postId) {
-                    window.location.href = `/post/${notif.postId}`; // or your route
-                  }
-                }}
-                className="bg-gray-800 p-3 rounded mb-2 hover:bg-gray-700 cursor-pointer flex items-center justify-between"
-              >
-                <div className="text-sm text-white">
-                  {notif.type === 'reaction' && (
-                    <p><span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> reacted to your post! 🔥</p>
-                  )}
-                  {notif.type === 'comment' && (
-                    <p><span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> commented on your post! 💬</p>
-                  )}
-                  {notif.type === 'mention' && (
-                    <p><span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> mentioned you! 🏷️</p>
-                  )}
-                </div>
-                {!notif.read && (
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div> // 🔴 red dot on unread
-                )}
+  {notifications.length === 0 ? (
+    <p className="text-gray-400">No new notifications yet.</p>
+  ) : (
+    notifications.map((notif) => (
+      <div
+        key={notif.id}
+        onClick={async () => {
+          const notifRef = doc(db, 'users', auth.currentUser.uid, 'notifications', notif.id);
+          await deleteDoc(notifRef); // Delete notification on click
 
-              </div>
-            ))
+          if (notif.postId) {
+            window.location.href = `/post/${notif.postId}`;
+          }
+        }}
+        className="bg-gray-800 p-3 rounded mb-2 hover:bg-gray-700 cursor-pointer flex items-center justify-between"
+      >
+        <div className="text-sm text-white mx-auto">
+          {notif.type === 'reaction' && (
+            <p>
+              <span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> reacted to your post! 🔥
+            </p>
+          )}
+          {notif.type === 'comment' && (
+            <p>
+              <span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> commented on your post! 💬
+            </p>
+          )}
+          {notif.type === 'mention' && (
+            <p>
+              <span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> mentioned you! 🏷️
+            </p>
+          )}
+          {/* ✅ Fallback for unknown or future types */}
+          {!['reaction', 'comment', 'mention'].includes(notif.type) && (
+            <p>
+              <span className="text-blue-400 font-bold">{notif.fromUserName || 'Someone'}</span> sent you a notification.
+            </p>
           )}
         </div>
 
+        {!notif.read && (
+          <div className="w-3 h-3 rounded-full bg-red-500"></div>
+        )}
+      </div>
+    ))
+  )}
+</div>
 
         {showSettings && (
   <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
