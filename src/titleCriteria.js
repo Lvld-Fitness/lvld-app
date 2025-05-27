@@ -18,7 +18,7 @@ export const TITLE_ACHIEVEMENTS = [
     description: 'Check out the Vitals and Virtues Podcast on all Streaming Platforms!'
   },
   {
-    title: 'LVLD',
+    title: 'TEAM LVLD',
     description: ''
   },
   { 

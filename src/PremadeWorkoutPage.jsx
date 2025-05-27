@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const categorizedWorkouts = {
-  'Push Day': [
-    ['Push Day (Classic)', ['Treadmill Walk', 'Bench Press', 'Shoulder Press', 'Tricep Dips']],
-    ['Push Day (Machine)', ['Bike - 5 min', 'Chest Press (Machine)', 'Shoulder Press (Machine)', 'Tricep Extension']]
+  'MURPH': [
+    ['Murph (No Vest)', ['Run', 'Pull-Ups', 'Push-Ups', 'Squats', 'Run']],
+    ['Murph (20lb Vest)', ['Run', 'Pull-Ups', 'Push-Ups', 'Squats', 'Run']]
   ],
   'Pull Day': [
     ['Pull Day (Rows)', ['Row Machine', 'Barbell Rows', 'Face Pulls', 'Bicep Curls']],

@@ -270,7 +270,7 @@ const deleteExercise = async (nameToDelete) => {
 // 🏃 List of built-in cardio exercises
 const staticCardio = [
   'Air Bike Sprint', 'Battle Ropes', 'Battle Ropes (Alternating)', 'Bear Crawl', 'Biking (Spin Bike)',
-  'Cycling', 'Elliptical', 'Farmer Carry (Dumbbell)', 'Farmer Carry (Kettlebell)', 'High Knees',
+  'Cycling', 'Elliptical', 'Farmer Carry (Dumbbell)', 'Farmer Carry (Kettlebell)', 'High Knees', 'Outdoor Run', 'Outdoor Walk', 'Run', 'Walk',
   'Indoor Running', 'Jumping Jacks', 'Outdoor Running', 'Rowing Machine', 'Rowing Sprint', 'Shadow Boxing',
   'Sled Pull', 'Sled Push', 'Stairmaster', 'Treadmill Run', 'Treadmill Sprint', 'Treadmill Walk',
   'Walking Lunge (Barbell)', 'Walking Lunge (Dumbbell)', 'Wall Ball (Medicine Ball)', 'VR Gaming', 'Skateboarding',
@@ -327,7 +327,10 @@ const updateSetValue = (exerciseIdx, setIdx, field, value) => {
     updated[exerciseIdx].sets[setIdx][field] = value;
     return updated;
   });
+
 };
+
+
 
 // ❌ Removes a specific set; if it was the last set in the exercise, it removes the whole exercise
 const removeSet = (exerciseIdx, setIdx) => {
@@ -493,6 +496,7 @@ try {
 
 
 
+
 // 🔓 Title Achievements Check
 const unlocked = new Set(userData.unlockedTitles || []);
 TITLE_ACHIEVEMENTS.forEach((achievement) => {
@@ -539,6 +543,67 @@ TITLE_ACHIEVEMENTS.forEach((achievement) => {
   
 
 
+
+//Update Team Challenges
+const finishedExercises = selectedExercises;
+
+// 1. Get the user's team ID
+const teamId = userSnap.exists() ? userSnap.data().teamId : null;
+
+if (teamId) {
+  const teamRef = doc(db, "teams", teamId);
+  const teamSnap = await getDoc(teamRef);
+  if (teamSnap.exists()) {
+    const teamData = teamSnap.data();
+    const updatedChallenges = [...(teamData.challenges || [])];
+
+    // 2. Loop over finished exercises
+    for (const ex of finishedExercises) {
+      const matchingChallenge = updatedChallenges.find(
+  (ch) =>
+    ex.name.toLowerCase().includes(ch.exercise.toLowerCase()) ||
+    ch.exercise.toLowerCase().includes(ex.name.toLowerCase())
+);
+
+
+      if (matchingChallenge) {
+        // Update reps if applicable
+        if (matchingChallenge.goalReps) {
+          const totalReps = ex.sets.reduce((sum, s) => sum + (s.reps || 0), 0);
+          matchingChallenge.progressReps =
+            (matchingChallenge.progressReps || 0) + totalReps;
+        }
+
+        // Update distance if it's a distance-based exercise
+        if (matchingChallenge.goalDistance) {
+          const totalDistance = (ex.sets || []).reduce((sum, set) => {
+            return sum + (parseFloat(set.distance) || 0);
+          }, 0);
+
+          matchingChallenge.progressDistance =
+            (matchingChallenge.progressDistance || 0) + totalDistance;
+        }
+
+
+        // Update weight lifted
+        if (matchingChallenge.goalWeight) {
+          const totalWeight = ex.sets.reduce(
+            (sum, s) => sum + ((s.reps || 0) * (s.weight || 0)),
+            0
+          );
+          matchingChallenge.progressWeight =
+            (matchingChallenge.progressWeight || 0) + totalWeight;
+        }
+      }
+    }
+
+    // 3. Write updated challenges back to Firestore
+    await updateDoc(teamRef, { challenges: updatedChallenges });
+  }
+}
+
+
+
     for (const title of newlyUnlocked) {
       await firebaseAddDoc(firebaseCollection(db, 'posts'), {
         userId: 'dKdmdsLKsTY51nFmqHjBWepZgDp2', // LVLD account UID
@@ -550,7 +615,6 @@ TITLE_ACHIEVEMENTS.forEach((achievement) => {
       
     }
   }
-
 
 
 
@@ -983,6 +1047,7 @@ ${workout.exercises.map(ex => {
           </div>
         )}
     </div>
+  
 
 
 {!cardioExercises.includes(exercise.name) && (
@@ -1066,6 +1131,26 @@ ${workout.exercises.map(ex => {
     )}
   </div>
 ))}
+
+{/* 🔢 Totals for non-cardio exercises */}
+{!cardioExercises.includes(exercise.name) && (
+  <div className="mt-2 text-sm text-gray-300">
+    Total Reps:{" "}
+    <span className="text-white font-bold">
+      {exercise.sets.reduce((sum, s) => sum + (parseInt(s.reps) || 0), 0)}
+    </span>{" "}
+    | Total Weight:{" "}
+    <span className="text-white font-bold">
+      {exercise.sets.reduce(
+        (sum, s) => sum + ((parseInt(s.reps) || 0) * (parseInt(s.weight) || 0)),
+        0
+      )}{" "}
+      lbs
+    </span>
+  </div>
+)}
+
+
 
 
 {/* ➕ Add a new set to this exercise */}

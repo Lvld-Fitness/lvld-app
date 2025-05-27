@@ -18,6 +18,8 @@ import {
 
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import CreateTeamModal from "./CreateTeamModal";
+import TeamChallenges from "./TeamChallenges";
+
 
 export default function TeamsTab() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -347,6 +349,10 @@ const openTeamPage = async (team) => {
               )}
             </div>
             <h2 className="text-3xl font-bold text-center">{selectedTeam?.name}</h2>
+            {selectedTeam?.id && (
+              <TeamChallenges teamId={selectedTeam.id} />
+            )}
+
           </div>
 
           {/* Team Chat */}
