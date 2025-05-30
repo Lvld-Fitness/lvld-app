@@ -270,10 +270,9 @@ const deleteExercise = async (nameToDelete) => {
 // 🏃 List of built-in cardio exercises
 const staticCardio = [
   'Air Bike Sprint', 'Battle Ropes', 'Battle Ropes (Alternating)', 'Bear Crawl', 'Biking (Spin Bike)',
-  'Cycling', 'Elliptical', 'Farmer Carry (Dumbbell)', 'Farmer Carry (Kettlebell)', 'High Knees', 'Outdoor Run', 'Outdoor Walk', 'Run', 'Walk',
-  'Indoor Running', 'Jumping Jacks', 'Outdoor Running', 'Rowing Machine', 'Rowing Sprint', 'Shadow Boxing',
-  'Sled Pull', 'Sled Push', 'Stairmaster', 'Treadmill Run', 'Treadmill Sprint', 'Treadmill Walk',
-  'Walking Lunge (Barbell)', 'Walking Lunge (Dumbbell)', 'Wall Ball (Medicine Ball)', 'VR Gaming', 'Skateboarding',
+  'Cycling', 'Elliptical', 'High Knees', 'Outdoor Run', 'Outdoor Walk', 'Run', 'Walk',
+  'Indoor Running', 'Outdoor Running', 'Rowing Machine', 'Rowing Sprint', 'Shadow Boxing',
+  'Sled Pull', 'Sled Push', 'Stairmaster', 'Treadmill Run', 'Treadmill Sprint', 'Treadmill Walk', 'Soccer', 'VR Gaming', 'Skateboarding',
   'Long Boarding'
 ];
 

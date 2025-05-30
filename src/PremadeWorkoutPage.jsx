@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { collection, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import { auth, db } from './firebase';
 
 const categorizedWorkouts = {
   'MURPH': [
@@ -29,20 +31,31 @@ const categorizedWorkouts = {
   'Core Blast': [
     ['Core Blast #1', ['Crunches', 'Plank', 'Leg Raise', 'Russian Twist']],
     ['Core Blast #2', ['Sit-Up', 'Cable Crunch', 'Toe Touches', 'Mountain Climbers']]
-  ],
-  'Custom Premades': [
-    ['Push Day (Classic)', ['Treadmill Walk', 'Bench Press', 'Shoulder Press', 'Tricep Dips']],
-    ['Push Day (Machine)', ['Bike - 5 min', 'Chest Press (Machine)', 'Shoulder Press (Machine)', 'Tricep Extension']]
-  ],
+  ]
 };
 
 export default function PremadeWorkoutPage() {
   const navigate = useNavigate();
   const [openCategory, setOpenCategory] = useState(null);
+  const [customWorkouts, setCustomWorkouts] = useState([]);
 
   const handleSelect = (exercises) => {
     navigate('/dashboard', { state: { premade: exercises } });
   };
+
+  useEffect(() => {
+    const fetchCustomWorkouts = async () => {
+      if (!auth.currentUser) return;
+
+      const customRef = collection(db, 'premadeWorkouts', auth.currentUser.uid, 'custom');
+      const snapshot = await getDocs(customRef);
+
+      const workouts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCustomWorkouts(workouts);
+    };
+
+    fetchCustomWorkouts();
+  }, []);
 
   return (
     <div className="p-4 bg-black min-h-screen text-white relative">
@@ -84,6 +97,60 @@ export default function PremadeWorkoutPage() {
             )}
           </div>
         ))}
+
+{/* 🔥 Custom Premades */}
+<div className="bg-gray-800 rounded-lg shadow-md">
+  <button
+    className="w-full text-left px-4 py-3 font-bold text-lg bg-gray-700 rounded-t-lg"
+    onClick={() => setOpenCategory('custom')}
+  >
+    Custom Premades
+  </button>
+  {openCategory === 'custom' && (
+    <div className="p-4 space-y-3">
+      {customWorkouts.length === 0 ? (
+        <p className="text-gray-400">No saved workouts yet.</p>
+      ) : (
+        customWorkouts.map((workout, i) => (
+          <div
+            key={workout.id || i}
+            className="bg-gray-900 hover:bg-gray-700 p-3 rounded cursor-pointer relative"
+          >
+            <h3
+              onClick={() => handleSelect(workout.exercises.map(ex => ex.name))}
+              className="font-bold text-yellow-300 mb-1"
+            >
+              {workout.name}
+            </h3>
+            <ul
+              onClick={() => handleSelect(workout.exercises.map(ex => ex.name))}
+              className="text-sm text-gray-300 list-disc list-inside"
+            >
+              {workout.exercises.map((ex, j) => (
+                <li key={j}>{ex.name}</li>
+              ))}
+            </ul>
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                const confirmed = window.confirm(`Delete "${workout.name}"?`);
+                if (!confirmed) return;
+
+                const docRef = doc(db, "premadeWorkouts", auth.currentUser.uid, "custom", workout.id);
+                await deleteDoc(docRef);
+                setCustomWorkouts(prev => prev.filter(w => w.id !== workout.id));
+              }}
+              className="absolute top-2 right-2 text-red-400 hover:text-red-600 text-sm"
+              title="Delete"
+            >
+              ✖
+            </button>
+          </div>
+        ))
+      )}
+    </div>
+  )}
+</div>
       </div>
     </div>
   );

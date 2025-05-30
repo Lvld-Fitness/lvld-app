@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef, React } from 'react';
 import { doc, getDoc, getDocs, collection, deleteDoc, updateDoc, addDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db, auth } from './firebase';
-import { DotsThreeVertical, ThumbsUp, Barbell, Fire, Chats, CheckCircle, } from 'phosphor-react';
+import { DotsThreeVertical, ThumbsUp, Barbell, Fire, Chats, CheckCircle, UserPlus, UserCirclePlus } from 'phosphor-react';
 import { useNavigate } from 'react-router-dom';
 import CommentSection from './CommentSection';
 import RankIcon from "./RankIcon";
@@ -230,7 +230,7 @@ if (hideInDiscovery) return null;
       title="Follow this user"
       className="text-green-400 hover:text-green-500 text-lg"
     >
-      <CheckCircle size={22} weight="fill" className="text-green-400 hover:text-green-500" />
+      <UserCirclePlus size={34} weight="fill" className="text-green-500 hover:text-green-500" />
     </button>
   )}
 </div>

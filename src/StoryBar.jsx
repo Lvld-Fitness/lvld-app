@@ -139,52 +139,124 @@ export default function StoryBar() {
         ))}
       </div>
 
+
       {/* Options Modal */}
-      {showOptions && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-4 rounded-lg w-64">
-            <h2 className="text-white text-lg font-bold mb-4">Select an Option</h2>
+{showOptions && (
+  <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+    <div className="bg-gray-800 p-4 rounded-lg w-64">
+      <h2 className="text-white text-lg font-bold mb-4">Select an Option</h2>
 
-            {showOptions.hasStory && (
-              <button
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 mb-2 rounded"
-                onClick={() => {
-                  navigate(`/story/${showOptions.userId}`);
-                  closeOptions();
-                }}
-              >
-                View Story
-              </button>
-            )}
+      {/* ✅ View your story if you have one */}
+      {showOptions.hasStory && (
+        <button
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 mb-2 rounded"
+          onClick={() => {
+            navigate(`/story/${showOptions.userId}`);
+            closeOptions();
+          }}
+        >
+          View Story
+        </button>
+      )}
 
+      {showOptions.uid === auth.currentUser?.uid ? (
+        <>
+          <button
+  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 mb-2 rounded"
+  onClick={() => {
+    document.getElementById('story-upload-input')?.click();
+    closeOptions();
+  }}
+>
+  Upload Story
+</button>
+
+<input
+  id="story-upload-input"
+  type="file"
+  accept="image/*,video/*"
+  style={{ display: 'none' }}
+  onChange={async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !auth.currentUser) return;
+
+    const userId = auth.currentUser.uid;
+    const storageRef = `stories/${userId}/${Date.now()}_${file.name}`;
+    const fileRef = firebase.storage().ref().child(storageRef);
+
+    try {
+      await fileRef.put(file);
+      const downloadURL = await fileRef.getDownloadURL();
+
+      const entryRef = doc(db, 'stories', userId, 'entries', `${Date.now()}`);
+      await setDoc(entryRef, {
+        url: downloadURL,
+        type: file.type.startsWith('video') ? 'video' : 'image',
+        timestamp: new Date(),
+      });
+
+      alert('Story uploaded!');
+    } catch (err) {
+      console.error('Upload failed', err);
+      alert('Failed to upload story.');
+    }
+  }}
+/>
+
+          <button
+            className="w-full bg-green-500 hover:bg-green-600 text-white py-2 mb-2 rounded"
+            onClick={() => {
+              navigate(`/profile`);
+              closeOptions();
+            }}
+          >
+            View Profile
+          </button>
+        </>
+      ) : (
+        <>
+          {showOptions.hasStory && (
             <button
-              className="w-full bg-green-500 hover:bg-green-600 text-white py-2 mb-2 rounded"
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 mb-2 rounded"
               onClick={() => {
-                navigate(`/profile/${showOptions.userId}`);
+                navigate(`/story/${showOptions.userId}`);
                 closeOptions();
               }}
             >
-              View Profile
+              View Story
             </button>
-
-            {showOptions.workingOut && (
-              <button
-                className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded"
-                onClick={() => fetchWorkout(showOptions.userId)}
-              >
-                View Workout
-              </button>
-            )}
-
+          )}
+          <button
+            className="w-full bg-green-500 hover:bg-green-600 text-white py-2 mb-2 rounded"
+            onClick={() => {
+              navigate(`/profile/${showOptions.userId}`);
+              closeOptions();
+            }}
+          >
+            View Profile
+          </button>
+          {showOptions.workingOut && (
             <button
-              className="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 mt-2 rounded"
-              onClick={closeOptions}
+              className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded"
+              onClick={() => fetchWorkout(showOptions.userId)}
             >
-              Cancel
+              View Workout
             </button>
-          </div>
-        </div>
+          )}
+        </>
       )}
+
+      <button
+        className="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 mt-2 rounded"
+        onClick={closeOptions}
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}
+
+
 
 {/* Active Workout Modal */}
 {activeWorkout && (

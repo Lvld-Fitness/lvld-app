@@ -1,11 +1,13 @@
 // WorkoutSummaryPopup.jsx
 import React from 'react';
-import { Export } from 'phosphor-react';
+import { Export, BookmarkSimple } from 'phosphor-react';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { db, auth } from './firebase';
 
 export default function WorkoutSummaryPopup({ summaryData, onClose }) {
   if (!summaryData) return null;
 
-  const { name, date, totalWeight, topSets, topCardio, funFact } = summaryData;
+  const { name, date, totalWeight, funFact } = summaryData;
 
   const handleShare = () => {
     const fullWorkoutText = summaryData.exercises.map(ex => {
@@ -30,6 +32,29 @@ export default function WorkoutSummaryPopup({ summaryData, onClose }) {
     }
   };
 
+const handleSaveAsPremade = async () => {
+  if (!auth.currentUser || !summaryData) return;
+
+  const premadeWorkout = {
+    name: summaryData.name || "Saved Workout",
+    exercises: summaryData.exercises || [],
+    createdBy: auth.currentUser.uid,
+    timestamp: Date.now(),
+  };
+
+  try {
+    const customRef = doc(db, "premadeWorkouts", auth.currentUser.uid, "custom", `${Date.now()}`);
+    await setDoc(customRef, premadeWorkout);
+    alert("Workout saved to Custom Premades!");
+  } catch (err) {
+    console.error("Failed to save premade workout:", err.message);
+    alert("Error saving workout.");
+  }
+};
+
+
+
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex justify-center items-center px-4">
       <div className="bg-gray-900 text-white p-6 rounded-lg w-full max-w-md shadow-lg border border-red-600 max-h-[80vh] overflow-y-auto pb-24">
@@ -38,6 +63,9 @@ export default function WorkoutSummaryPopup({ summaryData, onClose }) {
           <div className="flex items-center gap-3">
             <button onClick={handleShare} className="text-red-400 text-xl hover:text-red-500" title="Share Workout">
               <Export size={24} weight="bold" />
+            </button>
+            <button onClick={handleSaveAsPremade} className="text-yellow-400 text-xl hover:text-yellow-500" title="Save as Premade">
+              <BookmarkSimple size={24} weight="bold" />
             </button>
             <div className="absolute top-5 right-5 flex gap-3 p-2 bg-black bg-opacity-60 rounded-bl-lg z-50">
               <button onClick={onClose} className="text-red-400 text-xl hover:text-red-500">✖</button>

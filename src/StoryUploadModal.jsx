@@ -1,130 +1,267 @@
-import { useState, useRef } from 'react';
-import { storage, db } from './firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { collection, query, getDocs, orderBy, limit, getDoc, doc } from 'firebase/firestore';
+import { auth, db } from './firebase';
 import { useNavigate } from 'react-router-dom';
+import StoryUploadModal from './StoryUploadModal';
+import { Barbell } from 'phosphor-react';
 
-export default function StoryUploadModal({ onClose, userData }) {
-  const [media, setMedia] = useState(null);
-  const [caption, setCaption] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [zoom, setZoom] = useState(1);
-  const [textY, setTextY] = useState(50);
+export default function StoryBar() {
+  const [userData, setUserData] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [stories, setStories] = useState([]);
+  const [following, setFollowing] = useState([]);
+  const [showOptions, setShowOptions] = useState(null);
+  const [activeWorkout, setActiveWorkout] = useState(null);
   const navigate = useNavigate();
-  const dragStartY = useRef(null);
 
-  const handleChange = (e) => {
-    const file = e.target.files[0];
-    if (file) setMedia(file);
-  };
+  useEffect(() => {
+    const fetchUser = async () => {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+      const ref = doc(db, 'users', currentUser.uid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const data = snap.data();
+        setUserData({ uid: currentUser.uid, ...data });
+        setFollowing(data.following || []);
+      }
+    };
 
-  const handleUpload = async () => {
-    if (!media || !userData) return;
-    setUploading(true);
-    try {
-      const ext = media.name.split('.').pop();
-      const fileRef = ref(storage, `stories/${userData.uid}_${Date.now()}.${ext}`);
-      await uploadBytes(fileRef, media, { contentType: media.type });
+    fetchUser();
+  }, []);
 
-      const url = await getDownloadURL(fileRef);
-      const type = media.type.startsWith('video') ? 'video' : 'image';
+  useEffect(() => {
+    const fetchStories = async () => {
+      const now = Date.now();
+      const cutoff = now - 24 * 60 * 60 * 1000;
 
-      const entryRef = collection(db, 'stories', userData.uid, 'entries');
-      await addDoc(entryRef, {
-        mediaUrl: url,
-        mediaType: type,
-        timestamp: serverTimestamp(),
-        textOverlay: caption
-      });
+      const storyList = [];
 
-      setUploading(false);
-      navigate(`/story/${userData.uid}`);
-    } catch (err) {
-      console.error('Upload failed:', err);
-      alert('Upload failed');
-      setUploading(false);
+      const allUids = [auth.currentUser?.uid, ...following];
+      for (const uid of allUids) {
+        const userRef = doc(db, 'users', uid);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) continue;
+
+        const userData = userSnap.data();
+        const entriesRef = collection(db, 'stories', uid, 'entries');
+        const q = query(entriesRef, orderBy('timestamp', 'desc'), limit(1));
+        const entrySnap = await getDocs(q);
+
+        let story = null;
+        if (!entrySnap.empty) {
+          const entry = entrySnap.docs[0].data();
+          const entryTime = entry.timestamp?.toMillis?.() ?? 0;
+          if (entryTime >= cutoff) {
+            story = { ...entry };
+          }
+        }
+
+        storyList.push({
+          userId: uid,
+          hasStory: !!story,
+          ...userData,
+          ...story,
+        });
+      }
+
+      setStories(storyList);
+    };
+
+    if (auth.currentUser) {
+      fetchStories();
     }
+  }, [following]);
+
+  const handleOptions = (user) => {
+    setShowOptions(user);
+    setActiveWorkout(null);
   };
 
-  const handleMouseDown = (e) => {
-    dragStartY.current = e.clientY;
+  const closeOptions = () => {
+    setShowOptions(null);
+    setActiveWorkout(null);
   };
 
-  const handleMouseUp = () => {
-    dragStartY.current = null;
-  };
+  const fetchWorkout = async (userId) => {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
 
-  const handleMouseMove = (e) => {
-    if (dragStartY.current !== null) {
-      const delta = e.clientY - dragStartY.current;
-      setTextY((prev) => Math.min(100, Math.max(0, prev + delta * 0.2)));
-      dragStartY.current = e.clientY;
+    if (userSnap.exists()) {
+      const workoutData = userSnap.data().activeWorkout || [];
+      setActiveWorkout({ userId, exercises: workoutData });
+    } else {
+      setActiveWorkout({ userId, exercises: [] });
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center px-4">
-      <div className="bg-gray-900 w-full max-w-md p-4 rounded shadow-xl text-white text-center">
-        <h2 className="text-lg font-bold mb-4">Upload to Your Story</h2>
-
-        <input type="file" accept="image/*,video/*" onChange={handleChange} className="mb-3" />
-
-        {media && (
-          <div className="relative mb-4 overflow-hidden rounded border border-gray-700"
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-          >
-            {media.type.startsWith('video') ? (
-              <video src={URL.createObjectURL(media)} controls className="w-full rounded" />
-            ) : (
+    <>
+      <div className="w-full overflow-x-auto flex gap-4 p-3 border-b border-gray-700 bg-black relative">
+        {userData && (
+          <div className="flex flex-col items-center relative">
+            <div
+              onClick={() => handleOptions(userData)}
+              className="w-16 h-16 rounded-full border-4 border-blue-500 relative cursor-pointer"
+            >
               <img
-                src={URL.createObjectURL(media)}
-                alt="preview"
-                className="w-full rounded transform"
-                style={{ transform: `scale(${zoom})` }}
+                src={userData.profilePic || '/default-avatar.png'}
+                alt={userData.username}
+                className="w-full h-full object-cover rounded-full"
               />
+              {userData.workingOut && (
+                <div className="absolute -bottom-1 -right-1 bg-green-600 p-1 rounded-full shadow">
+                  <Barbell size={16} weight="bold" className="text-white" />
+                </div>
+              )}
+            </div>
+            <span className="text-xs text-white mt-1 w-16 truncate text-center">You</span>
+          </div>
+        )}
+
+        {stories
+          .filter((s) => s.userId !== auth.currentUser?.uid)
+          .map((story) => (
+            <div key={story.userId} className="flex flex-col items-center relative">
+              <div
+                onClick={() => handleOptions(story)}
+                className={`w-16 h-16 rounded-full border-4 relative cursor-pointer ${
+                  story.hasStory ? 'border-blue-500' : 'border-gray-600 opacity-40'
+                }`}
+              >
+                <img
+                  src={story.profilePic || '/default-avatar.png'}
+                  alt={story.username}
+                  className="w-full h-full object-cover rounded-full"
+                />
+                {story.workingOut && (
+                  <div className="absolute -bottom-1 -right-1 bg-green-600 p-1 rounded-full shadow">
+                    <Barbell size={14} weight="bold" className="text-white" />
+                  </div>
+                )}
+              </div>
+              <span className="text-xs text-white mt-1 truncate w-16 text-center">
+                {story.name || 'User'}
+              </span>
+            </div>
+          ))}
+      </div>
+
+      {showOptions && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-4 rounded-lg w-64">
+            <h2 className="text-white text-lg font-bold mb-4">Select an Option</h2>
+
+            {showOptions.userId === auth.currentUser?.uid ? (
+              <>
+                <button
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 mb-2 rounded"
+                  onClick={() => {
+                    setShowModal(true);
+                    closeOptions();
+                  }}
+                >
+                  Upload Story
+                </button>
+
+                <button
+                  className="w-full bg-green-500 hover:bg-green-600 text-white py-2 mb-2 rounded"
+                  onClick={() => {
+                    navigate(`/profile/${auth.currentUser.uid}`);
+                    closeOptions();
+                  }}
+                >
+                  View Profile
+                </button>
+
+                {showOptions.hasStory && (
+                  <button
+                    className="w-full bg-blue-400 hover:bg-blue-500 text-white py-2 mb-2 rounded"
+                    onClick={() => {
+                      navigate(`/story/${auth.currentUser.uid}`);
+                      closeOptions();
+                    }}
+                  >
+                    View Story
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                {showOptions.hasStory && (
+                  <button
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 mb-2 rounded"
+                    onClick={() => {
+                      navigate(`/story/${showOptions.userId}`);
+                      closeOptions();
+                    }}
+                  >
+                    View Story
+                  </button>
+                )}
+                <button
+                  className="w-full bg-green-500 hover:bg-green-600 text-white py-2 mb-2 rounded"
+                  onClick={() => {
+                    navigate(`/profile/${showOptions.userId}`);
+                    closeOptions();
+                  }}
+                >
+                  View Profile
+                </button>
+                {showOptions.workingOut && (
+                  <button
+                    className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded"
+                    onClick={() => fetchWorkout(showOptions.userId)}
+                  >
+                    View Workout
+                  </button>
+                )}
+              </>
             )}
 
-            {/* Caption Preview Overlay */}
-            <div
-              style={{ top: `${textY}%` }}
-              className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-3 py-2 bg-black bg-opacity-60 rounded"
-              onMouseDown={handleMouseDown}
+            <button
+              className="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 mt-2 rounded"
+              onClick={closeOptions}
             >
-              <p className="text-white">{caption}</p>
-            </div>
+              Cancel
+            </button>
           </div>
-        )}
-
-        {/* Caption Text Input */}
-        <input
-          type="text"
-          placeholder="Add a caption..."
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          className="w-full mt-2 px-3 py-2 rounded bg-gray-800 text-white border border-gray-600"
-        />
-
-        {/* Zoom Buttons */}
-        {media && !media.type.startsWith('video') && (
-          <div className="flex justify-center gap-4 mt-2">
-            <button onClick={() => setZoom((z) => Math.max(1, z - 0.1))} className="text-white text-xl">➖</button>
-            <button onClick={() => setZoom((z) => Math.min(3, z + 0.1))} className="text-white text-xl">➕</button>
-          </div>
-        )}
-
-        <div className="flex justify-between mt-4">
-          <button onClick={onClose} className="text-red-400 hover:text-red-600">Cancel</button>
-          <button
-            onClick={handleUpload}
-            disabled={uploading || !media}
-            className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded"
-          >
-            {uploading ? 'Uploading...' : 'Post Story'}
-          </button>
         </div>
-      </div>
-    </div>
+      )}
+
+      {showModal && <StoryUploadModal onClose={() => setShowModal(false)} userData={userData} />}
+
+      {activeWorkout && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-4 rounded-lg w-64 max-h-[80vh] overflow-y-auto">
+            <h2 className="text-white text-lg font-bold mb-4">Active Workout</h2>
+            {activeWorkout.exercises.length > 0 ? (
+              activeWorkout.exercises.map((exercise, index) => (
+                <div key={index} className="mb-4">
+                  <h3 className="text-yellow-400 font-bold">{exercise.name}</h3>
+                  {exercise.sets.map((set, idx) => (
+                    <p key={idx} className="text-white text-sm">
+                      {set.weight && set.reps
+                        ? `${set.weight} lbs x ${set.reps} reps`
+                        : set.distance && set.time
+                        ? `${set.distance} mi in ${set.time} min`
+                        : `Set not complete yet.`}
+                    </p>
+                  ))}
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-400">No active workout data available.</p>
+            )}
+            <button
+              className="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 mt-2 rounded"
+              onClick={() => setActiveWorkout(null)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
