@@ -1,24 +1,63 @@
 import { useEffect, useState } from "react";
 import { db } from "./firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  getDocs,
+  collection,
+} from "firebase/firestore";
+
 
 export default function TeamChallenges({ teamId }) {
   const [challenges, setChallenges] = useState([]);
 
- useEffect(() => {
-  const fetchChallenges = async () => {
+useEffect(() => {
+  const fetchData = async () => {
     if (!teamId) return;
-    const ref = doc(db, "teams", teamId);
-    const snap = await getDoc(ref);
 
-    if (snap.exists()) {
-      const data = snap.data();
-      setChallenges(data.challenges || []);
+    const teamRef = doc(db, "teams", teamId);
+    const teamSnap = await getDoc(teamRef);
+
+    if (!teamSnap.exists()) return;
+
+    const { challenges = [], currentMembers = [] } = teamSnap.data();
+
+    let updatedChallenges = [...challenges];
+
+    for (const memberId of currentMembers) {
+      const workoutsRef = collection(db, "users", memberId, "workouts");
+      const workoutsSnap = await getDocs(workoutsRef);
+
+      workoutsSnap.forEach((docSnap) => {
+        const workout = docSnap.data();
+
+        workout.exercises?.forEach((ex) => {
+          updatedChallenges = updatedChallenges.map((ch) => {
+            if (ch.exercise !== ex.name) return ch;
+
+            const sets = ex.sets || [];
+
+            const totalReps = sets.reduce((sum, set) => sum + (set.reps || 0), 0);
+            const totalWeight = sets.reduce((sum, set) => sum + ((set.reps || 0) * (set.weight || 0)), 0);
+            const totalDistance = ex.distance || 0;
+
+            return {
+              ...ch,
+              progressReps: (ch.progressReps || 0) + totalReps,
+              progressWeight: (ch.progressWeight || 0) + totalWeight,
+              progressDistance: (ch.progressDistance || 0) + totalDistance,
+            };
+          });
+        });
+      });
     }
+
+    setChallenges(updatedChallenges);
   };
 
-  fetchChallenges();
+  fetchData();
 }, [teamId]);
+
 
 
   const formatNumber = (num) => num?.toLocaleString() || 0;

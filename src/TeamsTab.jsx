@@ -15,7 +15,7 @@ import {
   orderBy,
   onSnapshot,
 } from "firebase/firestore";
-
+import { useNavigate } from "react-router-dom";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import CreateTeamModal from "./CreateTeamModal";
 import TeamChallenges from "./TeamChallenges";
@@ -32,6 +32,9 @@ export default function TeamsTab() {
   const [members, setMembers] = useState([]);
   const [showSettings, setShowSettings] = useState(false);
   const [showKickConfirm, setShowKickConfirm] = useState(null);
+  const [teamBio, setTeamBio] = useState("");
+  const navigate = useNavigate();
+
 
   const user = auth.currentUser;
 
@@ -99,6 +102,8 @@ const openTeamPage = async (team) => {
       })
     );
     setMembers(memberData);
+    setTeamBio(team.bio || "");
+
 
     // ✅ Fetch team messages with usernames
     const messagesRef = collection(db, "teams", team.id, "messages");
@@ -349,6 +354,23 @@ const openTeamPage = async (team) => {
               )}
             </div>
             <h2 className="text-3xl font-bold text-center">{selectedTeam?.name}</h2>
+            <p className="text-center text-gray-300 mt-2 max-w-md whitespace-pre-wrap">{teamBio}</p>
+            {auth.currentUser?.uid === selectedTeam.createdBy && (
+              <button
+                className="text-sm text-blue-400 hover:underline mt-1"
+                onClick={async () => {
+                  const newBio = prompt("Edit Team Bio:", teamBio);
+                  if (newBio !== null) {
+                    await updateDoc(doc(db, "teams", selectedTeam.id), {
+                      bio: newBio,
+                    });
+                    setTeamBio(newBio);
+                  }
+                }}
+              >
+                Edit Bio
+              </button>
+            )}
             {selectedTeam?.id && (
               <TeamChallenges teamId={selectedTeam.id} />
             )}
@@ -403,11 +425,17 @@ const openTeamPage = async (team) => {
                   key={member.id}
                   className="relative bg-gray-800 p-2 rounded-lg text-center w-20"
                 >
-                  <img
-                    src={member.profilePic || "/default-avatar.png"}
-                    alt="avatar"
-                    className="w-10 h-10 rounded-full mx-auto mb-1 object-cover"
-                  />
+                  <div
+                    onClick={() => navigate(`/profile/${member.id}`)}
+                    className="cursor-pointer"
+                  >
+                    <img
+                      src={member.profilePic || "/default-avatar.png"}
+                      alt="avatar"
+                      className="w-10 h-10 rounded-full mx-auto mb-1 object-cover"
+                    />
+                  </div>
+
                   <p className="text-sm text-gray-400 truncate">{member.name}</p>
 
                   {showKickConfirm === "open" && auth.currentUser?.uid === selectedTeam.createdBy && (

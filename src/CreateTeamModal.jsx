@@ -8,6 +8,7 @@ export default function CreateTeamModal({ onClose }) {
   const [maxMembers, setMaxMembers] = useState("");
   const [teamImage, setTeamImage] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [teamBio, setTeamBio] = useState('');
 
   const handleImageUpload = async (file) => {
     const storageRef = ref(storage, `teamImages/${file.name}-${Timestamp.now()}`);
@@ -28,6 +29,7 @@ export default function CreateTeamModal({ onClose }) {
 
       const newTeam = {
         name: teamName,
+        bio: teamBio,
         maxMembers: parseInt(maxMembers),
         currentMembers: [],
         image: imageUrl,
@@ -38,6 +40,7 @@ export default function CreateTeamModal({ onClose }) {
       await addDoc(collection(db, "teams"), newTeam);
 
       setTeamName("");
+      setTeamBio("");
       setMaxMembers("");
       setTeamImage(null);
       onClose();
@@ -90,7 +93,22 @@ export default function CreateTeamModal({ onClose }) {
         style={{
           width: "100%",
           padding: "10px",
-          marginBottom: "16px",
+          marginBottom: "10px",
+          borderRadius: "6px",
+          backgroundColor: "#374151",
+          border: "none",
+          color: "#ffffff",
+        }}
+      />
+
+      <textarea
+        placeholder="Team Bio"
+        value={teamBio}
+        onChange={(e) => setTeamBio(e.target.value)}
+        style={{
+          width: "100%",
+          padding: "10px",
+          marginBottom: "10px",
           borderRadius: "6px",
           backgroundColor: "#374151",
           border: "none",

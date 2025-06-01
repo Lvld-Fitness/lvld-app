@@ -6,7 +6,7 @@ import { doc, getDoc, collection, query, where, orderBy, onSnapshot, updateDoc, 
 import PostCard from './PostCard';
 import RankIcon from "./RankIcon";
 import TitleModal from "./TitleModal";
-import { ChatCircle, ChatsCircle } from "phosphor-react";
+import { ChatCircle, ChatsCircle, UserPlus, UserMinus } from "phosphor-react";
 import MessageModal from "./MessageModal";
 
 export default function PublicProfile() {
@@ -39,6 +39,19 @@ export default function PublicProfile() {
     };
     fetchUser();
   }, [uid]);
+
+  useEffect(() => {
+  const checkFollowing = async () => {
+    if (!currentUser || currentUser.uid === uid) return;
+    const mySnap = await getDoc(doc(db, 'users', currentUser.uid));
+    if (mySnap.exists()) {
+      const following = mySnap.data().following || [];
+      setIsFollowing(following.includes(uid));
+    }
+  };
+  checkFollowing();
+}, [uid]);
+
 
   useEffect(() => {
     const q = query(
@@ -137,6 +150,15 @@ export default function PublicProfile() {
         )}
 
         <p className="text-center text-gray-300 max-w-md mt-2">{data.bio || 'This user has no bio.'}</p>
+                  {currentUser?.uid !== uid && (
+                    <button
+                      onClick={toggleFollow}
+                      className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
+                    >
+                      {isFollowing ? <UserMinus size={20} /> : <UserPlus size={20} />}
+                      {isFollowing ? 'Unfollow' : 'Follow'}
+                    </button>
+                  )}
 
         <div className="grid grid-cols-2 gap-6 text-center mt-6 w-full max-w-md">
           <div>
