@@ -1,5 +1,8 @@
 import { doc, getDoc, updateDoc, collection, getDocs, addDoc } from "firebase/firestore";
-import { db } from "./firebase";
+import { db, auth } from "./firebase";
+import { notifyAllUsers } from './notifyAllUsers';
+
+
 
 // 📅 Season Definitions
 const SEASONS = [
@@ -90,38 +93,17 @@ const resetAllUserRanks = async (currentSeason) => {
   }
 };
 
-// 🔥 Notify All Users
-const notifyAllUsers = async (content) => {
-  try {
-    const usersRef = collection(db, "users");
-    const snapshot = await getDocs(usersRef);
-
-    snapshot.docs.forEach(async (userDoc) => {
-      const userId = userDoc.id;
-
-      // Skip LVLD account itself
-      if (userId === LVLD_ACCOUNT_ID) return;
-
-      const userRef = doc(db, "users", userId);
-      await updateDoc(userRef, {
-        notifications: arrayUnion(content),
-      });
-    });
-
-    console.log("Notification sent to all users.");
-  } catch (error) {
-    console.error("Error sending notification to all users:", error);
-  }
-};
 
 // 🔥 Post LVLD Message
 const postLVLDMessage = async (content, seasonName, type) => {
   try {
-    // If the post contains "@everyone", notify all users
+    // ✅ Only send @everyone if this post is from the LVLD account
     if (content.includes("@everyone")) {
+      console.log("🚨 postLVLDMessage CALLED with content:", content);
       await notifyAllUsers(content);
     }
 
+    // 📬 Create the actual post
     await addDoc(collection(db, "posts"), {
       userId: LVLD_ACCOUNT_ID,
       content,
@@ -131,10 +113,14 @@ const postLVLDMessage = async (content, seasonName, type) => {
       season: seasonName,
       type: type,
     });
+
   } catch (error) {
     console.error("Error posting LVLD message:", error);
   }
 };
+
+
+
 
 
 
@@ -182,11 +168,13 @@ const handleSeasonalPosts = async () => {
       
       // Keep LVLD as Champion 5
       if (doc.id === LVLD_ACCOUNT_ID) {
-        updates.rank = "champion_5";
-        updates.rankRP = 40000; // Arbitrary RP to maintain Champion 6
+        const updates = {
+          rank: "champion_5",
+          rankRP: 40000,
+        };
+        await updateDoc(userRef, updates);
       }
 
-      await updateDoc(userRef, updates);
 
     });
 

@@ -50,6 +50,7 @@ export default function WorkoutTab() {
   const [showNoteModal, setShowNoteModal] = useState(null);
   const [showRestTimer, setShowRestTimer] = useState(null);
   const [floatingRest, setFloatingRest] = useState(null);
+  const [userWeight, setUserWeight] = useState(0);
   const [restDurations, setRestDurations] = useState(() => {
     const saved = localStorage.getItem('exerciseRestDurations');
     return saved ? JSON.parse(saved) : {};
@@ -114,6 +115,8 @@ export default function WorkoutTab() {
           setExerciseList(data.savedExercises);
           localStorage.setItem('savedExercises', JSON.stringify(data.savedExercises));
         }
+
+        if (data.weight) setUserWeight(parseFloat(data.weight));
 
         setTotalWeight(data.totalWeight || 0);
         setTotalDistance(data.totalDistance || 0);
@@ -267,6 +270,10 @@ const deleteExercise = async (nameToDelete) => {
   await saveExercisesToFirebase(updated);
 };
 
+// List of Body-Weight Exercises
+const bodyweightExercises = ['Pull-Ups', 'Chin-Ups', 'Pull-Ups (Wide Grip)', 'Push-Ups', 'Push-Ups (Wide Grip)', 'Diamond Push-Ups', 'Dips'];
+
+
 // 🏃 List of built-in cardio exercises
 const staticCardio = [
   'Air Bike Sprint', 'Battle Ropes', 'Battle Ropes (Alternating)', 'Bear Crawl', 'Biking (Spin Bike)',
@@ -314,16 +321,39 @@ const addSet = (exerciseIdx) => {
     const exercise = updated[exerciseIdx];
     if (!exercise.sets) exercise.sets = [];
     const nextId = exercise.sets.length + 1;
-    exercise.sets = [...exercise.sets, { id: nextId, weight: '', reps: '', completed: false, tag: '' }];
+
+    // Create new set
+    const newSet = {
+      id: nextId,
+      weight: bodyweightExercises.includes(exercise.name) ? userWeight : '',
+      reps: '',
+      completed: false,
+      tag: '',
+      modifier: 0,
+    };
+
+    // 🛠️ Ensure weight is correctly calculated even without modifier change
+    if (bodyweightExercises.includes(exercise.name)) {
+      newSet.weight = userWeight;
+    }
+
+    exercise.sets = [...exercise.sets, newSet];
     return updated;
   });
 };
+
 
 // 🔄 Updates a specific field (like weight or reps) for a set
 const updateSetValue = (exerciseIdx, setIdx, field, value) => {
   setSelectedExercises((prev) => {
     const updated = [...prev];
     updated[exerciseIdx].sets[setIdx][field] = value;
+
+    // Auto-calculate weight if bodyweight + modifier
+    if (field === 'modifier' && bodyweightExercises.includes(updated[exerciseIdx].name)) {
+      const mod = parseFloat(value) || 0;
+      updated[exerciseIdx].sets[setIdx].weight = parseFloat(userWeight) + mod;
+    }
     return updated;
   });
 
@@ -477,7 +507,7 @@ const finishWorkout = async () => {
 
     await updateDoc(userRef, {
       workoutHistory: updatedHistory,
-      totalWeight,
+      totalWeight: (userData.totalWeight || 0) + totalWeight,
       totalDistance,
       lastWorkoutDate: today.toISOString(),
       workoutStreak: newStreak,
@@ -1064,8 +1094,21 @@ ${workout.exercises.map(ex => {
       onKeyDown={(e) => {
         if (e.key === 'Enter') repsRefs.current[`${exerciseIdx}-${setIdx}`]?.focus();
       }}
-      className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
+      className="bg-gray-700 rounded px-2 py-1 text-sm w-16"
     />
+
+      {bodyweightExercises.includes(exercise.name) && (
+  <input
+    type="number"
+    placeholder="+/- lbs"
+    value={set.modifier || ''}
+    onChange={(e) =>
+      updateSetValue(exerciseIdx, setIdx, 'modifier', e.target.value)
+    }
+    className="bg-gray-700 rounded px-2 py-1 text-sm w-16"
+  />
+)}
+
 
     {/* REPS */}
     <input
@@ -1080,7 +1123,7 @@ ${workout.exercises.map(ex => {
       onKeyDown={(e) => {
         if (e.key === 'Enter') checkRefs.current[`${exerciseIdx}-${setIdx}`]?.click();
       }}
-      className="bg-gray-700 rounded px-2 py-1 text-sm w-20"
+      className="bg-gray-700 rounded px-2 py-1 text-sm w-16"
     />
   </>
 )}

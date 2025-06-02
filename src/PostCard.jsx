@@ -13,7 +13,29 @@ import TitleModal from "./TitleModal";
 
 
 
+const checkMentionsAndNotify = async (content, postId, senderName) => {
+  const mentioned = Array.from(content.matchAll(/@(\w+)/g)).map(m => m[1]);
 
+  if (mentioned.length === 0) return;
+
+  const usersSnap = await getDocs(collection(db, 'users'));
+
+  for (const docSnap of usersSnap.docs) {
+    const data = docSnap.data();
+    const uid = docSnap.id;
+
+    if (mentioned.includes(data.handle)) {
+      await addDoc(collection(db, 'users', uid, 'notifications'), {
+        type: 'mention',
+        fromUserName: senderName,
+        postId,
+        message: `💬 ${senderName} mentioned you in a post!`,
+        timestamp: Date.now(),
+        read: false,
+      });
+    }
+  }
+};
 
 export default function PostCard({ post, showFollowOption = false, currentUserId, following = [] }) {
   const [username, setUsername] = useState('User');
@@ -249,13 +271,20 @@ if (hideInDiscovery) return null;
     {currentUser?.uid === post.userId ? (
       <>
         <button
-          onClick={() => {
+          onClick={async () => {
             const newContent = prompt("Edit your post:", post.content);
             if (newContent !== null) {
-              updateDoc(doc(db, 'posts', post.id), { content: newContent });
+              await updateDoc(doc(db, 'posts', post.id), { content: newContent });
+
+              const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+              const senderName = userSnap.exists() ? userSnap.data().name : 'Someone';
+
+              await checkMentionsAndNotify(newContent, post.id, senderName);
+
               setShowOptions(false);
             }
           }}
+
           className="block w-full text-left text-sm text-blue-400 hover:bg-gray-700 px-4 py-2"
         >
           Edit

@@ -63,13 +63,13 @@ const defaultExercises = [
   'Tricep Pushdown (V-Bar)',
   'Chest Fly (Cable)',
   'Chest Fly (Machine)',
-  'Push-Up',
+  'Push-Ups',
+  'Push-Ups (Wide Grip)',
+  'Diamond Push-Ups',
   'Incline Chest Fly (Dumbbell)',
   'Decline Chest Fly (Dumbbell)',
   'T-Bar Row (Barbell)',
   'T-Bar Row (Machine)',
-  'Pull-Up (Neutral Grip)',
-  'Pull-Up (Wide Grip)',
   'Chin-Up (Underhand Grip)',
   'Front Raise (Dumbbell)',
   'Front Raise (Barbell)',
@@ -191,6 +191,7 @@ const defaultExercises = [
   'Biking (Spin Bike)',
   'Air Bike Sprint',
   'VR Gaming',
+  'Chin-Ups',
 ];
 
 export default defaultExercises;
