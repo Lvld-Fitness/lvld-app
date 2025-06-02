@@ -1081,52 +1081,69 @@ ${workout.exercises.map(ex => {
 
 {!cardioExercises.includes(exercise.name) && (
   <>
-    {/* LBS */}
-    <input
-      ref={(el) => (lbsRefs.current[`${exerciseIdx}-${setIdx}`] = el)}
-      type="number"
-      placeholder={(() => {
-        const last = JSON.parse(localStorage.getItem('lastUsedSets') || '{}')[exercise.name]?.[setIdx];
-        return last?.weight ? `${last.weight} lbs` : 'lbs';
-      })()}
-      value={set.weight}
-      onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'weight', e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') repsRefs.current[`${exerciseIdx}-${setIdx}`]?.focus();
-      }}
-      className="bg-gray-700 rounded px-2 py-1 text-sm w-16"
-    />
+    {/* 🔁 Bodyweight Exercises: show only +/- lbs and reps */}
+    {bodyweightExercises.includes(exercise.name) ? (
+      <>
+        {/* Modifier (+/- lbs) */}
+        <input
+          type="number"
+          placeholder="+/- lbs"
+          value={set.modifier || ''}
+          onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'modifier', e.target.value)}
+          className="bg-gray-700 rounded px-2 py-1 text-sm w-16"
+        />
 
-      {bodyweightExercises.includes(exercise.name) && (
-  <input
-    type="number"
-    placeholder="+/- lbs"
-    value={set.modifier || ''}
-    onChange={(e) =>
-      updateSetValue(exerciseIdx, setIdx, 'modifier', e.target.value)
-    }
-    className="bg-gray-700 rounded px-2 py-1 text-sm w-16"
-  />
-)}
+        {/* Reps */}
+        <input
+          ref={(el) => (repsRefs.current[`${exerciseIdx}-${setIdx}`] = el)}
+          type="number"
+          placeholder="Reps"
+          value={set.reps}
+          onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'reps', e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') checkRefs.current[`${exerciseIdx}-${setIdx}`]?.click();
+          }}
+          className="bg-gray-700 rounded px-2 py-1 text-sm w-16"
+        />
+      </>
+    ) : (
+      <>
+        {/* LBS */}
+        <input
+          ref={(el) => (lbsRefs.current[`${exerciseIdx}-${setIdx}`] = el)}
+          type="number"
+          placeholder={(() => {
+            const last = JSON.parse(localStorage.getItem('lastUsedSets') || '{}')[exercise.name]?.[setIdx];
+            return last?.weight ? `${last.weight} lbs` : 'lbs';
+          })()}
+          value={set.weight}
+          onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'weight', e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') repsRefs.current[`${exerciseIdx}-${setIdx}`]?.focus();
+          }}
+          className="bg-gray-700 rounded px-2 py-1 text-sm w-16"
+        />
 
-
-    {/* REPS */}
-    <input
-      ref={(el) => (repsRefs.current[`${exerciseIdx}-${setIdx}`] = el)}
-      type="number"
-      placeholder={(() => {
-        const last = JSON.parse(localStorage.getItem('lastUsedSets') || '{}')[exercise.name]?.[setIdx];
-        return last?.reps ? `${last.reps} reps` : 'reps';
-      })()}
-      value={set.reps}
-      onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'reps', e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') checkRefs.current[`${exerciseIdx}-${setIdx}`]?.click();
-      }}
-      className="bg-gray-700 rounded px-2 py-1 text-sm w-16"
-    />
+        {/* Reps */}
+        <input
+          ref={(el) => (repsRefs.current[`${exerciseIdx}-${setIdx}`] = el)}
+          type="number"
+          placeholder={(() => {
+            const last = JSON.parse(localStorage.getItem('lastUsedSets') || '{}')[exercise.name]?.[setIdx];
+            return last?.reps ? `${last.reps} reps` : 'reps';
+          })()}
+          value={set.reps}
+          onChange={(e) => updateSetValue(exerciseIdx, setIdx, 'reps', e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') checkRefs.current[`${exerciseIdx}-${setIdx}`]?.click();
+          }}
+          className="bg-gray-700 rounded px-2 py-1 text-sm w-16"
+        />
+      </>
+    )}
   </>
 )}
+
 
     {/* ✅ Check */}
     <button

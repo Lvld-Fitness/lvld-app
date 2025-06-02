@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { collection, query, getDocs, orderBy, limit, getDoc, doc } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, limit, getDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { useNavigate } from 'react-router-dom';
 import StoryUploadModal from './StoryUploadModal';
 import { Barbell } from 'phosphor-react';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function StoryBar() {
   const [userData, setUserData] = useState(null);
@@ -13,6 +14,8 @@ export default function StoryBar() {
   const [showOptions, setShowOptions] = useState(null);
   const [activeWorkout, setActiveWorkout] = useState(null);
   const navigate = useNavigate();
+  const [refreshStories, setRefreshStories] = useState(false);
+
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -33,6 +36,8 @@ export default function StoryBar() {
 
       const storyList = [];
 
+      
+
       for (const uid of following) {
         const userRef = doc(db, 'users', uid);
         const userSnap = await getDoc(userRef);
@@ -44,13 +49,15 @@ export default function StoryBar() {
         const entrySnap = await getDocs(q);
 
         let story = null;
-        if (!entrySnap.empty) {
-          const entry = entrySnap.docs[0].data();
-          const entryTime = entry.timestamp?.toMillis?.() ?? 0;
-          if (entryTime >= cutoff) {
-            story = { ...entry };
-          }
-        }
+          if (!entrySnap.empty) {
+            const entry = entrySnap.docs[0].data();
+            const entryTime = entry.timestamp?.toMillis?.() ?? 0;
+            if (entryTime >= cutoff) {
+              story = { ...entry };
+            }
+}
+
+
 
         storyList.push({
           userId: uid,
@@ -140,38 +147,37 @@ export default function StoryBar() {
       </div>
 
 
-      {/* Options Modal */}
+{/* Options Modal */}
 {showOptions && (
   <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
     <div className="bg-gray-800 p-4 rounded-lg w-64">
       <h2 className="text-white text-lg font-bold mb-4">Select an Option</h2>
 
-      {/* ✅ View your story if you have one */}
-      {showOptions.hasStory && (
-        <button
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 mb-2 rounded"
-          onClick={() => {
-            navigate(`/story/${showOptions.userId}`);
-            closeOptions();
-          }}
-        >
-          View Story
-        </button>
-      )}
-
       {showOptions.uid === auth.currentUser?.uid ? (
         <>
-          <button
-  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 mb-2 rounded"
-  onClick={() => {
-    document.getElementById('story-upload-input')?.click();
-    closeOptions();
-  }}
->
-  Upload Story
-</button>
+          {showOptions.hasStory && (
+            <button
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 mb-2 rounded"
+              onClick={() => {
+                navigate(`/story/${showOptions.userId}`);
+                closeOptions();
+              }}
+            >
+              View Story
+            </button>
+          )}
 
-<input
+          <button
+            className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-2 mb-2 rounded"
+            onClick={() => {
+              document.getElementById('story-upload-input')?.click();
+              closeOptions();
+            }}
+          >
+            Upload Story
+          </button>
+
+          <input
   id="story-upload-input"
   type="file"
   accept="image/*,video/*"
@@ -181,21 +187,24 @@ export default function StoryBar() {
     if (!file || !auth.currentUser) return;
 
     const userId = auth.currentUser.uid;
-    const storageRef = `stories/${userId}/${Date.now()}_${file.name}`;
-    const fileRef = firebase.storage().ref().child(storageRef);
+    const timestamp = Date.now();
+
+    const storage = getStorage(); // ✅ correct initialization
+    const fileRef = ref(storage, `stories/${userId}/${timestamp}_${file.name}`); // ✅ reference to file path
 
     try {
-      await fileRef.put(file);
-      const downloadURL = await fileRef.getDownloadURL();
+      await uploadBytes(fileRef, file); // ✅ upload
+      const downloadURL = await getDownloadURL(fileRef); // ✅ fetch URL
 
-      const entryRef = doc(db, 'stories', userId, 'entries', `${Date.now()}`);
+      const entryRef = doc(db, 'stories', userId, 'entries', `${timestamp}`);
       await setDoc(entryRef, {
-        url: downloadURL,
-        type: file.type.startsWith('video') ? 'video' : 'image',
-        timestamp: new Date(),
+        mediaUrl: downloadURL,
+        mediaType: file.type.startsWith('video') ? 'video' : 'image',
+        timestamp: serverTimestamp(),
       });
 
       alert('Story uploaded!');
+      setRefreshStories((prev) => !prev); // 🔁 force refresh
     } catch (err) {
       console.error('Upload failed', err);
       alert('Failed to upload story.');
@@ -255,6 +264,8 @@ export default function StoryBar() {
     </div>
   </div>
 )}
+
+
 
 
 

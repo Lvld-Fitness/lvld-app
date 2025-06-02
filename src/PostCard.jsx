@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef, React } from 'react';
 import { doc, getDoc, getDocs, collection, deleteDoc, updateDoc, addDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db, auth } from './firebase';
-import { DotsThreeVertical, ThumbsUp, Barbell, Fire, Chats, CheckCircle, UserPlus, UserCirclePlus } from 'phosphor-react';
+import { DotsThreeVertical, ThumbsUp, Barbell, Fire, Chats, CheckCircle, UserPlus, UserCirclePlus, ShareNetwork, ArrowsOut, ArrowsIn } from 'phosphor-react';
 import { useNavigate } from 'react-router-dom';
 import CommentSection from './CommentSection';
 import RankIcon from "./RankIcon";
@@ -48,12 +48,41 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
   const optionsRef = useRef();
   const [hideInDiscovery, setHideInDiscovery] = useState(false);
   const [userTitle, setUserTitle] = useState('');
-  const [showFullWorkout, setShowFullWorkout] = useState(false);
   const [linkPreview, setLinkPreview] = useState(null);
   const [rank, setRank] = useState('bronze_1');
   const [showTitleModal, setShowTitleModal] = useState(false);
   const [selectedTitle, setSelectedTitle] = useState("");
+  const hasShared = (type) => reactions[type]?.includes(currentUser?.uid);
+  const [workoutExpanded, setWorkoutExpanded] = useState(false);
+ 
+
   
+
+const handleRepost = async () => {
+  try {
+    await addDoc(collection(db, 'posts'), {
+      userId: currentUser.uid,
+      content: post.content,
+      timestamp: Date.now(),
+      reactions: {},
+      repostedFrom: post.handle || post.userId,
+      repostedPostId: post.id,
+      deleted: false,
+    });
+
+    // 🔁 Increment share count on original post
+    const originalPostRef = doc(db, 'posts', post.id);
+    await updateDoc(originalPostRef, {
+      shares: arrayUnion(currentUser.uid)
+    });
+
+    alert('Post shared!');
+    setShowDropdown(false);
+  } catch (err) {
+    console.error('Failed to repost:', err);
+    alert('Failed to share post.');
+  }
+};
 
 
 
@@ -140,52 +169,74 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
   }, [showOptions]);
   
 
-  const handleReact = async (type) => {
-    if (!currentUser) return;
-  
-    const postRef = doc(db, 'posts', post.id);
-    const userId = currentUser.uid;
-    const currentReactions = post.reactions || {};
-  
-    const batch = {
-      [`reactions.thumbsUp`]: arrayRemove(userId),
-      [`reactions.fire`]: arrayRemove(userId),
-      [`reactions.barbell`]: arrayRemove(userId),
-    };
-  
-    if (currentReactions[type]?.includes(userId)) {
-      await updateDoc(postRef, { [`reactions.${type}`]: arrayRemove(userId) });
-    } else {
-      await updateDoc(postRef, {
-        ...batch,
-        [`reactions.${type}`]: arrayUnion(userId)
-      });
-  
-      // 🔥 NEW: Send notification for reaction
-      const postSnap = await getDoc(doc(db, 'posts', post.id));
-      const postData = postSnap.exists() ? postSnap.data() : null;
-  
-      if (postData?.userId && postData.userId !== userId) {
-        const userSnap = await getDoc(doc(db, 'users', userId));
-        const userName = userSnap.exists() ? userSnap.data().name : 'Someone';
-  
-        await addDoc(collection(db, 'users', postData.userId, 'notifications'), {
-          type: 'reaction',
-          from: userId,
-          fromUserName: userName,
-          postId: post.id,
-          timestamp: Date.now(),
-          read: false,
-        });
-      }
-    }
+ const handleReact = async (type) => {
+  if (!currentUser) return;
+
+  const postRef = doc(db, 'posts', post.id);
+  const userId = currentUser.uid;
+  const currentReactions = post.reactions || {};
+
+  if (type === 'share') {
+    // ✅ ShareFat logic
+    if (post.shares?.includes(userId)) return;
+
+    await updateDoc(postRef, {
+      shares: arrayUnion(userId)
+    });
+
+    await addDoc(collection(db, 'posts'), {
+      userId,
+      content: post.content,
+      timestamp: new Date(),
+      reactions: {},
+      repostedFrom: post.handle || post.userId,
+      repostedPostId: post.id,
+      deleted: false,
+    });
+
+    return;
+  }
+
+  // 🔁 Normal reaction logic
+  const batch = {
+    [`reactions.thumbsUp`]: arrayRemove(userId),
+    [`reactions.fire`]: arrayRemove(userId),
+    [`reactions.barbell`]: arrayRemove(userId),
   };
+
+  if (currentReactions[type]?.includes(userId)) {
+    await updateDoc(postRef, { [`reactions.${type}`]: arrayRemove(userId) });
+  } else {
+    await updateDoc(postRef, {
+      ...batch,
+      [`reactions.${type}`]: arrayUnion(userId)
+    });
+
+    const postSnap = await getDoc(postRef);
+    const postData = postSnap.exists() ? postSnap.data() : null;
+
+    if (postData?.userId && postData.userId !== userId) {
+      const userSnap = await getDoc(doc(db, 'users', userId));
+      const userName = userSnap.exists() ? userSnap.data().name : 'Someone';
+
+      await addDoc(collection(db, 'users', postData.userId, 'notifications'), {
+        type: 'reaction',
+        from: userId,
+        fromUserName: userName,
+        postId: post.id,
+        timestamp: Date.now(),
+        read: false,
+      });
+    }
+  }
+};
+
   
   
   
   
   const reactions = post.reactions || {};
-
+  const shareCount = post.shares?.length || 0;
   const getReactionCount = (type) => reactions[type]?.length || 0;
   const hasReacted = (type) => reactions[type]?.includes(currentUser?.uid);
   
@@ -329,21 +380,25 @@ if (hideInDiscovery) return null;
   </div>
 )}
 
-
-
-
-
-{/* {post.exercises?.length > 0 && (
-  <div className="mb-2">
+{post.exercises?.length > 0 && (
+  <div className="mb-2 bg-gray-900 border border-gray-700 rounded p-3">
     <button
-      onClick={() => setShowFullWorkout(!showFullWorkout)}
-      className="text-sm text-blue-400 hover:text-blue-500 font-bold mb-1"
+      onClick={() => setWorkoutExpanded(!workoutExpanded)}
+      className="text-sm text-blue-400 hover:text-blue-500 font-bold w-full text-left"
     >
-      {showFullWorkout ? 'Hide Full Workout ▲' : 'View Full Workout ▼'}
+  <>
+  {workoutExpanded ? (
+    <ArrowsIn size={18} className="inline-block mr-1" />
+  ) : (
+    <ArrowsOut size={18} className="inline-block mr-1" />
+  )}
+  {username} just finished a workout!
+</>
+
     </button>
 
-    {showFullWorkout && (
-      <div className="bg-gray-900 p-3 rounded border border-gray-700 mt-2">
+    {workoutExpanded && (
+      <div className="mt-2">
         {post.exercises.map((ex, i) => (
           <div key={i} className="mb-2">
             <p className="text-yellow-300 font-semibold">{ex.name}</p>
@@ -351,7 +406,7 @@ if (hideInDiscovery) return null;
               {ex.sets.map((set, j) => (
                 <li key={j}>
                   {set.weight !== undefined
-                    ? `${set.weight} lbs × ${set.reps} reps`
+                    ? `${set.tag ? `${set.tag} • ` : ''}${set.weight || 0} lbs × ${set.reps || 0} reps`
                     : `${set.distance || 0} mi in ${set.time || 0} min`}
                 </li>
               ))}
@@ -362,10 +417,24 @@ if (hideInDiscovery) return null;
     )}
   </div>
 )}
-  */}
+
+    
+{post.repostedFrom && post.repostedPostId && (
+  <p
+    className="text-sm text-blue-400 cursor-pointer hover:underline flex items-center gap-1"
+    onClick={() => navigate(`/post/${post.repostedPostId}`)}
+  >
+    <ShareNetwork size={18} />
+    Reposted from @{username}
+  </p>
+)}
 
 
-      <p className="text-white mb-2 whitespace-pre-line">{linkify(post.content)}</p>
+
+      {(!post.exercises || post.exercises.length === 0) && (
+        <p className="text-white mb-2 whitespace-pre-line">{linkify(post.content)}</p>
+      )}
+
 
       {linkPreview?.title && (
         <div className="bg-gray-900 border border-gray-700 rounded p-3 mt-2">
@@ -411,12 +480,20 @@ if (hideInDiscovery) return null;
             <Fire size={25} className={hasReacted('fire') ? 'text-red-500' : 'text-white'} />
             <span className="text-xs">{getReactionCount('fire')}</span>
           </button>
+          <button onClick={handleRepost} className="flex flex-col items-center text-white hover:text-blue-400">
+            <ShareNetwork size={28} className={hasShared ? 'text-blue-400' : 'text-white'} />
+            <span className="text-xs">{shareCount}</span>
+          </button>
+
         </div>
         <button onClick={() => setShowComments(!showComments)} className="text-white hover:text-blue-400">
           <Chats size={30} />
           {commentCount > 0 && <span className="text-sm ml-1">{commentCount}</span>}
         </button>
+        
       </div>
+
+
 
       {showComments && <CommentSection postId={post.id} />}
     </div>
