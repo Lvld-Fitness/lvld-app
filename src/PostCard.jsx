@@ -1,6 +1,6 @@
 // PostCard.jsx
 import { useEffect, useState, useRef, React } from 'react';
-import { doc, getDoc, getDocs, collection, deleteDoc, updateDoc, addDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, deleteDoc, updateDoc, addDoc, arrayUnion, arrayRemove, setDoc, increment } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { DotsThreeVertical, ThumbsUp, Barbell, Fire, Chats, CheckCircle, UserPlus, UserCirclePlus, ShareNetwork, ArrowsOut, ArrowsIn } from 'phosphor-react';
 import { useNavigate } from 'react-router-dom';
@@ -54,35 +54,66 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
   const [selectedTitle, setSelectedTitle] = useState("");
   const hasShared = (type) => reactions[type]?.includes(currentUser?.uid);
   const [workoutExpanded, setWorkoutExpanded] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [repostCount, setRepostCount] = useState(post.repostCount || 0);
+  const [hasReposted, setHasReposted] = useState(false);
  
 
   
 
 const handleRepost = async () => {
   try {
-    await addDoc(collection(db, 'posts'), {
-      userId: currentUser.uid,
-      content: post.content,
-      timestamp: Date.now(),
-      reactions: {},
-      repostedFrom: post.handle || post.userId,
-      repostedPostId: post.id,
-      deleted: false,
-    });
+    if (!auth.currentUser) return;
 
-    // 🔁 Increment share count on original post
-    const originalPostRef = doc(db, 'posts', post.id);
-    await updateDoc(originalPostRef, {
-      shares: arrayUnion(currentUser.uid)
-    });
+    const repostRef = doc(db, 'posts', post.id + '_repost_' + auth.currentUser.uid);
+    const repostSnap = await getDoc(repostRef);
 
-    alert('Post shared!');
-    setShowDropdown(false);
+    if (repostSnap.exists()) {
+      // 🔁 Undo repost
+      await deleteDoc(repostRef);
+      await updateDoc(doc(db, 'posts', post.id), {
+        repostCount: increment(-1),
+      });
+      setRepostCount((prev) => prev - 1);
+      setHasReposted(false);
+      alert('Repost removed.');
+    } else {
+      // 🔎 Always pull original post from Firestore to get true user info
+      const originalId = post.repostedPostId || post.id;
+      const originalRef = doc(db, 'posts', originalId);
+      const originalSnap = await getDoc(originalRef);
+
+      if (!originalSnap.exists()) {
+        alert('Original post not found.');
+        return;
+      }
+
+      const original = originalSnap.data();
+      const originalUsername = original.username || original.name || original.userId;
+
+      const newRepostRef = doc(db, 'posts', originalId + '_repost_' + auth.currentUser.uid);
+      await setDoc(newRepostRef, {
+        ...original,
+        id: newRepostRef.id,
+        repostedFrom: post.username || post.name || 'HERE',
+        repostedPostId: originalId,
+        userId: auth.currentUser.uid,
+        timestamp: new Date(),
+      });
+
+      await updateDoc(originalRef, { repostCount: increment(1) });
+      setRepostCount((prev) => prev + 1);
+      setHasReposted(true);
+      alert('Post shared!');
+    }
   } catch (err) {
     console.error('Failed to repost:', err);
-    alert('Failed to share post.');
+    alert('Failed to repost. Try again.');
   }
 };
+
+
+
 
 
 
@@ -425,7 +456,7 @@ if (hideInDiscovery) return null;
     onClick={() => navigate(`/post/${post.repostedPostId}`)}
   >
     <ShareNetwork size={18} />
-    Reposted from @{username}
+    Originial Post 
   </p>
 )}
 

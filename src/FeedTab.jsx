@@ -34,7 +34,10 @@ export default function FeedTab() {
       const loadedPosts = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .filter(post =>
-          showDiscovery || post.userId === auth.currentUser.uid || following.includes(post.userId)
+          showDiscovery ||
+          post.userId === auth.currentUser.uid ||
+          following.includes(post.userId) ||
+          (post.repostedFrom && (post.userId === auth.currentUser.uid || following.includes(post.userId)))
         );
       setPosts(loadedPosts);
     });
