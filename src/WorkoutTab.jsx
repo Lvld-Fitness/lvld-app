@@ -517,11 +517,15 @@ const finishWorkout = async () => {
 
     // 🏆 Update Ranking
 try {
-  await updateRankingAfterWorkout(user.uid, { weightLifted: totalWeight, distance: totalDistance });
+  await updateRankingAfterWorkout(user.uid, {
+    weightLifted: totalWeight,
+    distance: totalDistance,
+  });
   console.log("Ranking updated successfully.");
 } catch (err) {
   console.error("Error updating ranking:", err);
 }
+
 
 
 

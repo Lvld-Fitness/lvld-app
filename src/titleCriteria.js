@@ -2,24 +2,29 @@ export const TITLE_ACHIEVEMENTS = [
   //customs
   {
     title: 'Beta Tester',
+    condition: null,
     description: 'Users who used LVLD During Beta! You are the Real MVP! <3'
   },
   {
     title: 'LVLD Developer',
+    condition: null,
     description: 'For the person who developed LVLD!'
   },
   {
     title: 'LVLD FITNESS',
+    condition: null,
     description: 'WELCOME TO LVLD FITNESS!'
   },
   {
     //Leos Custom Title
     title: 'Vitals and Virtues',
+    condition: null,
     description: 'Check out the Vitals and Virtues Podcast on all Streaming Platforms!'
   },
   {
     title: 'TEAM LVLD',
-    description: ''
+    condition: null,
+    description: 'Member of LVLD.'
   },
   { 
     //Workout Achievements

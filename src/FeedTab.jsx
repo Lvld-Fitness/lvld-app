@@ -67,9 +67,9 @@ export default function FeedTab() {
     }
   };
 
-  return (
+   return (
     <div className="bg-black text-white min-h-screen p-4 pb-24">
-      <StoryBar />
+      {/*<StoryBar />*/}
 
       <form onSubmit={handleSearch} className="mb-4">
         <input
@@ -117,4 +117,5 @@ export default function FeedTab() {
       {showModal && <CreatePostModal onClose={() => setShowModal(false)} />}
     </div>
   );
+  
 }

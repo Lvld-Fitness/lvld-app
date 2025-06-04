@@ -174,7 +174,7 @@ export default function StoryBar() {
               closeOptions();
             }}
           >
-            Upload Story
+            Stories Coming Soon
           </button>
 
           <input

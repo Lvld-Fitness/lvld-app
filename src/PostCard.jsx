@@ -57,21 +57,23 @@ export default function PostCard({ post, showFollowOption = false, currentUserId
   const [showDropdown, setShowDropdown] = useState(false);
   const [repostCount, setRepostCount] = useState(post.repostCount || 0);
   const [hasReposted, setHasReposted] = useState(false);
- 
+
+
+
 
   
 
 const handleRepost = async () => {
   try {
     if (!auth.currentUser) return;
-
     const repostRef = doc(db, 'posts', post.id + '_repost_' + auth.currentUser.uid);
     const repostSnap = await getDoc(repostRef);
 
     if (repostSnap.exists()) {
       // 🔁 Undo repost
       await deleteDoc(repostRef);
-      await updateDoc(doc(db, 'posts', post.id), {
+      const originalId = post.repostedPostId || post.id;
+      await updateDoc(doc(db, 'posts', originalId), {
         repostCount: increment(-1),
       });
       setRepostCount((prev) => prev - 1);
@@ -90,7 +92,6 @@ const handleRepost = async () => {
 
       const original = originalSnap.data();
       const originalUsername = original.username || original.name || original.userId;
-
       const newRepostRef = doc(db, 'posts', originalId + '_repost_' + auth.currentUser.uid);
       await setDoc(newRepostRef, {
         ...original,
@@ -212,7 +213,8 @@ const handleRepost = async () => {
     if (post.shares?.includes(userId)) return;
 
     await updateDoc(postRef, {
-      shares: arrayUnion(userId)
+      shares: arrayUnion(userId),
+      repostCount: increment(1)
     });
 
     await addDoc(collection(db, 'posts'), {
@@ -267,7 +269,7 @@ const handleRepost = async () => {
   
   
   const reactions = post.reactions || {};
-  const shareCount = post.shares?.length || 0;
+  const shareCount = repostCount;
   const getReactionCount = (type) => reactions[type]?.length || 0;
   const hasReacted = (type) => reactions[type]?.includes(currentUser?.uid);
   
@@ -456,7 +458,7 @@ if (hideInDiscovery) return null;
     onClick={() => navigate(`/post/${post.repostedPostId}`)}
   >
     <ShareNetwork size={18} />
-    Originial Post 
+    REPOSTED 
   </p>
 )}
 
@@ -500,25 +502,25 @@ if (hideInDiscovery) return null;
       <div className="flex items-center justify-between mt-2">
         <div className="flex gap-4 text-sm text-gray-300">
           <button onClick={() => handleReact('thumbsUp')}>
-            <ThumbsUp size={25} className={hasReacted('thumbsUp') ? 'text-blue-500' : 'text-white'} />
+            <ThumbsUp size={25} className={hasReacted('thumbsUp') ? 'text-blue-500' : 'text-blue-500'} />
             <span className="text-xs">{getReactionCount('thumbsUp')}</span>
           </button>
           <button onClick={() => handleReact('barbell')}>
-            <Barbell size={25} className={hasReacted('barbell') ? 'text-yellow-400' : 'text-white'} />
+            <Barbell size={25} className={hasReacted('barbell') ? 'text-yellow-400' : 'text-yellow-400'} />
             <span className="text-xs">{getReactionCount('barbell')}</span>
           </button>
           <button onClick={() => handleReact('fire')}>
-            <Fire size={25} className={hasReacted('fire') ? 'text-red-500' : 'text-white'} />
+            <Fire size={25} className={hasReacted('fire') ? 'text-red-500' : 'text-red-500'} />
             <span className="text-xs">{getReactionCount('fire')}</span>
           </button>
-          <button onClick={handleRepost} className="flex flex-col items-center text-white hover:text-blue-400">
-            <ShareNetwork size={28} className={hasShared ? 'text-blue-400' : 'text-white'} />
+          <button onClick={handleRepost} className="flex flex-col items-center text-white hover:text-white-400">
+            <ShareNetwork size={25} className={hasShared ? 'text-green-400' : 'text-white'} />
             <span className="text-xs">{shareCount}</span>
           </button>
 
         </div>
         <button onClick={() => setShowComments(!showComments)} className="text-white hover:text-blue-400">
-          <Chats size={30} />
+          <Chats size={35} />
           {commentCount > 0 && <span className="text-sm ml-1">{commentCount}</span>}
         </button>
         

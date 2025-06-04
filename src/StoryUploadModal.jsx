@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { collection, query, getDocs, orderBy, limit, getDoc, doc } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, limit, getDoc, doc, setDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useNavigate } from 'react-router-dom';
 import StoryUploadModal from './StoryUploadModal';
 import { Barbell } from 'phosphor-react';
@@ -161,7 +162,7 @@ export default function StoryBar() {
                     closeOptions();
                   }}
                 >
-                  Upload Story
+                  Stories Coming Soon
                 </button>
 
                 <button

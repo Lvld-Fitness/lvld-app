@@ -14,13 +14,20 @@ const SEASONS = [
 
 const LVLD_ACCOUNT_ID = "dKdmdsLKsTY51nFmqHjBWepZgDp2";
 
-const getCurrentSeason = () => {
-  const now = new Date();
-  for (const season of SEASONS) {
-    if (now >= season.start && now <= season.end) {
-      return season;
+export const getCurrentSeason = async () => {
+  const snapshot = await getDocs(collection(db, "seasons"));
+  const now = Date.now();
+
+  for (const docSnap of snapshot.docs) {
+    const season = docSnap.data();
+    const start = new Date(season.startDate).getTime();
+    const end = new Date(season.endDate).getTime();
+
+    if (now >= start && now <= end) {
+      return { id: docSnap.id, ...season };
     }
   }
+
   return null;
 };
 
@@ -180,12 +187,12 @@ const handleSeasonalPosts = async () => {
 
     await Promise.all(resetPromises);
 
-    postLVLDMessage(`🔥 @everyone, **${name}** has officially started! Get those workouts going! 💪`, name, "seasonStart");
+    postLVLDMessage(`🔥 Everyone, **${name}** has officially started! Get those workouts going! 💪`, name, "seasonStart");
   }
 //midseason announcement
   if (now >= halfWay && now < end) {
     postLVLDMessage(
-      `🚀 @everyone, We're halfway through **${name}**! 
+      `🚀 Everyone, We're halfway through **${name}**! 
 Current Leaders:
 - Weight: **${topWeightUser?.name || "No data"}** (${topWeightUser?.weight?.toLocaleString() || "0"} lbs)
 - Distance: **${topDistanceUser?.name || "No data"}** (${topDistanceUser?.distance?.toFixed(2) || "0.00"} mi)`,
@@ -196,7 +203,7 @@ Current Leaders:
 //end of season announcement
   if (now >= end) {
     postLVLDMessage(
-      `🏁 @everyone, **${name}** is complete! 
+      `🏁 Everyone, **${name}** is complete! 
 - Total Weight Lifted: ${totalWeight.toLocaleString()} lbs
 - Total Distance Covered: ${totalDistance.toFixed(2)} mi
 🏆 Congrats to the top lifters and runners!
@@ -215,7 +222,8 @@ Current Leaders:
 export const updateRankingAfterWorkout = async (userId, workout) => {
   const userRef = doc(db, "users", userId);
   const userSnap = await getDoc(userRef);
-  const currentSeason = getCurrentSeason();
+  const currentSeason = await getCurrentSeason(); // ✅ must use await
+
 
   if (!userSnap.exists()) return "bronze_1";
 
