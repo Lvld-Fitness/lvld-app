@@ -164,7 +164,7 @@ export default function CommentSection({ postId }) {
                 />
 
                 <div className="flex items-center gap-2">
-                  <RankIcon rank={c.rank} size={24} />
+                  {/*<RankIcon rank={c.rank} size={24} />*/}
                   <span className="text-white font-bold">{c.userName}</span>
                 </div>
 

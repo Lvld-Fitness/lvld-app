@@ -288,7 +288,7 @@ if (hideInDiscovery) return null;
           
           <div className="flex items-center gap-1">
             <div className="text-lg font-extrabold text-black flex items-center gap-2">
-              <RankIcon rank={rank} size={34} />
+              {/*<RankIcon rank={rank} size={34} />*/}
               <div className="flex flex-col">
                 <span className="font-bold text-white">{username}</span>
                 {userTitle && (
