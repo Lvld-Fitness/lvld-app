@@ -516,7 +516,7 @@ const finishWorkout = async () => {
     });
 
     // 🏆 Update Ranking
-try {
+{/*try {
   await updateRankingAfterWorkout(user.uid, {
     weightLifted: totalWeight,
     distance: totalDistance,
@@ -525,7 +525,7 @@ try {
 } catch (err) {
   console.error("Error updating ranking:", err);
 }
-
+*/}
 
 
 
@@ -651,36 +651,13 @@ if (teamId) {
 
 
 
-  let fact = 'YOU ARE A BEAST!';
-try {
-  const didLift = selectedExercises.some(ex =>
-    ex.sets?.some(set => parseFloat(set.weight || 0) > 0)
-  );
-  const didCardio = topCardio?.distance > 0;
+const didLift = selectedExercises.some(ex =>
+  ex.sets?.some(set => parseFloat(set.weight || 0) > 0)
+);
+const didCardio = topCardio?.distance > 0;
 
-  const contextPrompt = `Give me a short, powerful motivational quote for someone who ${
-    didLift ? `lifted a total of ${totalWeight.toLocaleString()} lbs` : ''
-  }${
-    didLift && didCardio ? ' and ' : ''
-  }${
-    didCardio ? `ran or walked ${topCardio.distance} miles` : ''
-  }. Make it hype, personal, and avoid repetition. Feel like it’s talking to a gym warrior.`
-    const funFactRes = await fetch(
-      import.meta.env.DEV
-        ? 'http://localhost:3000/api/getFunFact'
-        : '/api/getFunFact',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: contextPrompt })
-      }
-    );
+let fact = "YOU ARE A BEAST!"; // 💥 Static motivational message — no fetch call
 
-    const json = await funFactRes.json();
-    fact = json.fact || fact;
-  } catch (err) {
-    console.error('Quote fetch failed', err);
-  }
 
   const formattedExercises = selectedExercises.map(ex => {
     const sets = ex.sets || [];
